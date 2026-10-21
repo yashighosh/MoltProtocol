@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ApiError, api } from "../api";
+import { EmptyState } from "../components/EmptyState";
 import { IngestionChooser } from "../components/IngestionChooser";
+import { PageHeader } from "../components/PageHeader";
 import { StatusBadge } from "../components/StatusBadge";
 import type { Project } from "../types";
 
@@ -21,9 +23,7 @@ export function IngestionPage() {
         if (stop) return;
         setProject(result);
         if (result.ingestionStatus === "queued" || result.ingestionStatus === "running") timer = window.setTimeout(tick, 700);
-      }).catch((reason: Error) => {
-        if (!stop) setError(reason.message);
-      });
+      }).catch((reason: Error) => { if (!stop) setError(reason.message); });
     };
     tick();
     return () => { stop = true; window.clearTimeout(timer); };
@@ -43,15 +43,13 @@ export function IngestionPage() {
   }
 
   const running = project?.ingestionStatus === "queued" || project?.ingestionStatus === "running";
+  const flagged = project?.files.filter((file) => file.status !== "parsed") ?? [];
 
   return (
     <div className="stack">
-      <div>
-        <h1>Legacy codebase ingestion</h1>
-        <p className="lede">Submit a codebase to parse. Unsupported and corrupted files stay in the summary with a reason. The page shows the stage that is actually running.</p>
-      </div>
+      <PageHeader eyebrow="Live" title="Ingest" lede="Submit a codebase to parse. Unsupported and corrupted files stay in the summary with a reason. The page shows the stage that is actually running." />
       {!projectId && (
-        <section className="panel">
+        <section className="card">
           <IngestionChooser
             busy={busy}
             serverError={error}
@@ -69,15 +67,25 @@ export function IngestionPage() {
         </section>
       )}
       {error && projectId && <p className="callout error" role="alert">{error}</p>}
+      <section className="card stack">
+        <h2>Flagged files</h2>
+        {!project && <EmptyState title="No flagged files yet">They appear here with a reason after ingestion, including files the parser cannot accept.</EmptyState>}
+        {project && flagged.length === 0 && <p>No files were flagged.</p>}
+        {flagged.length > 0 && (
+          <ul>
+            {flagged.map((file) => <li key={file.id}><span className="path">{file.path}</span> <StatusBadge status={file.status} /> {file.rejectionReason}</li>)}
+          </ul>
+        )}
+      </section>
       {project && (
-        <section className="panel stack" aria-live="polite">
+        <section className="card stack" aria-live="polite">
           <div className="row">
             <h2>{project.name}</h2>
             <StatusBadge status={project.ingestionStatus} label={running ? `Stage: ${project.ingestionStage}` : project.ingestionStatus} />
           </div>
-          {running && <p>Current stage: {project.ingestionStage}. This updates from the job record, not a timer.</p>}
+          {running && <p>Current stage: {project.ingestionStage}. This updates from the job record.</p>}
           <ol>
-            {project.stages.map((stage) => <li key={`${stage.stage}-${stage.createdAt}`}>{stage.stage}{stage.detail ? ` — ${stage.detail}` : ""}</li>)}
+            {project.stages.map((stage) => <li key={`${stage.stage}-${stage.createdAt}`}>{stage.stage}{stage.detail ? `: ${stage.detail}` : ""}</li>)}
           </ol>
           {project.ingestionStatus === "failed" && (
             <div className="callout error">
@@ -97,8 +105,8 @@ export function IngestionPage() {
                     <tr key={file.id}>
                       <td className="path">{file.path}</td>
                       <td><StatusBadge status={file.status} /></td>
-                      <td>{file.language ?? "—"}</td>
-                      <td className="mono">{file.loc ?? "—"}</td>
+                      <td>{file.language ?? "Not parsed"}</td>
+                      <td className="mono">{file.loc ?? "n/a"}</td>
                       <td>{file.rejectionReason ?? "Parsed"}</td>
                     </tr>
                   ))}
