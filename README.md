@@ -25,7 +25,7 @@ On Ingestion, use **Load bundled sample**. The fixture is `fixtures/sample-legac
 
 1. `/` plays a skippable opening once per session. Reduced motion skips it.
 2. Sign in. The same identity is what expert review will record.
-3. `/workspace` lists projects and links to all five features.
+3. Sign-in opens `/dashboard`. `/workspace` lists projects. The sidebar also reaches progress, rule check, architecture draft, behavior checks, traceability, reports, and settings.
 4. `/ingestion/:projectId` shows stages, then file count, languages, lines of code, and flagged files.
 5. `/dependency-map/:projectId` runs analysis, selects a node, and exports SVG, PNG, or PDF.
 6. `/intent-summaries/:projectId` generates summaries. `util/scratch.js` is low confidence and stays flagged. Send a summary to review.
