@@ -1,0 +1,124 @@
+/*
+ * MoltProtocol design tokens.
+ * Text/background pairs below are chosen to meet WCAG AA (4.5:1 for body text, 3:1 for large text and UI).
+ * --text-muted is the lowest text level allowed on cream; gold text on cream uses --gold-ink, never --gold.
+ */
+:root {
+  /* Cream layers (light content) */
+  --bg-canvas: #f4eee3;
+  --bg-sunken: #ebe3d5;
+  --surface: #fbf8f2;
+  --surface-raised: #ffffff;
+  --surface-hover: #f1ebe0;
+  --border: #ddd3c2;
+  --border-strong: #c4b8a3;
+
+  /* Text on cream */
+  --text-primary: #1d1b17;
+  --text-secondary: #463f35;
+  --text-muted: #625a4e;
+  --text-inverse: #f6f1e7;
+
+  /* Charcoal layers (hero, feature, sidebar) */
+  --night-950: #100f0c;
+  --night-900: #16150f;
+  --night-800: #1f1d18;
+  --night-700: #2a2822;
+  --night-600: #37342c;
+  --night-border: #3d3a31;
+  --night-text: #f4eee3;
+  --night-text-secondary: #c2b8a7;
+  --night-text-muted: #9b917f;
+
+  /* Brand accents */
+  --gold: #c9a24a;
+  --gold-soft: #e7cf91;
+  --gold-ink: #7c5e17;
+  --gold-wash: #f3e6c4;
+  --navy: #263b50;
+  --navy-600: #2f4a65;
+  --navy-400: #5b7a99;
+  --navy-wash: #dde5ee;
+
+  /* Semantic states: ink for text and icons, wash for fills, line for borders */
+  --success-ink: #2f6040;
+  --success-wash: #dfeadb;
+  --success-line: #9fbea4;
+  --warning-ink: #7d5300;
+  --warning-wash: #f6e6c0;
+  --warning-line: #dcbb6f;
+  --danger-ink: #9b302b;
+  --danger-wash: #f6dcd7;
+  --danger-line: #d79a92;
+  --info-ink: #2a557f;
+  --info-wash: #dce7f2;
+  --info-line: #9db7d3;
+  --neutral-ink: #4f483e;
+  --neutral-wash: #e9e2d5;
+  --neutral-line: #cdc2af;
+
+  /* Typography */
+  --font-display: "Space Grotesk Variable", "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Inter Variable", "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+
+  --fs-hero: clamp(3rem, 6.6vw, 6rem);
+  --fs-display: clamp(2.25rem, 4.4vw, 3.5rem);
+  --fs-h1: clamp(1.875rem, 2.6vw, 2.5rem);
+  --fs-h2: 1.5rem;
+  --fs-h3: 1.1875rem;
+  --fs-lead: clamp(1.0625rem, 1.3vw, 1.25rem);
+  --fs-body: 1rem;
+  --fs-sm: 0.875rem;
+  --fs-xs: 0.8125rem;
+  --fs-eyebrow: 0.75rem;
+
+  --lh-tight: 1.02;
+  --lh-heading: 1.12;
+  --lh-body: 1.6;
+  --ls-display: -0.035em;
+  --ls-heading: -0.02em;
+  --ls-eyebrow: 0.14em;
+
+  /* 8px spacing grid */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --space-5: 32px;
+  --space-6: 40px;
+  --space-7: 48px;
+  --space-8: 64px;
+  --space-9: 80px;
+  --space-10: 96px;
+  --space-12: 128px;
+
+  /* Radius */
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 20px;
+  --radius-xl: 24px;
+  --radius-pill: 999px;
+
+  /* Elevation */
+  --shadow-xs: 0 1px 2px rgb(29 27 23 / 0.06);
+  --shadow-sm: 0 1px 2px rgb(29 27 23 / 0.05), 0 4px 12px rgb(29 27 23 / 0.05);
+  --shadow-md: 0 2px 6px rgb(29 27 23 / 0.06), 0 12px 32px rgb(29 27 23 / 0.08);
+  --shadow-lg: 0 8px 24px rgb(16 15 12 / 0.18), 0 32px 80px rgb(16 15 12 / 0.28);
+  --ring-focus: 0 0 0 3px var(--surface), 0 0 0 5px var(--navy);
+  --ring-focus-dark: 0 0 0 3px var(--night-900), 0 0 0 5px var(--gold-soft);
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 140ms;
+  --dur-base: 220ms;
+  --dur-slow: 360ms;
+
+  /* Layout */
+  --sidebar-width: 264px;
+  --sidebar-collapsed: 76px;
+  --header-height: 68px;
+  --content-max: 1280px;
+  --page-max: 1240px;
+}
