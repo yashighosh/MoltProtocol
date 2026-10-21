@@ -25,7 +25,7 @@ export function NotificationBell({ notices }: { notices: Notice[] }) {
   useEffect(() => { if (open) setSeen(notices.length); }, [open, notices.length]);
   const unread = Math.max(0, notices.length - seen);
   return (
-    <div style={{ position: "relative" }}>
+    <div className="bell">
       <button type="button" className="icon-btn" aria-label="Notifications" aria-expanded={open} onClick={() => setOpen((value) => !value)}>
         <Bell size={16} />
         {unread > 0 && <span className="bell-count">{unread}</span>}

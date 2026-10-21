@@ -47,24 +47,26 @@ export function WorkspacePage() {
       {error && <ErrorState message={error} onRetry={load} />}
       {!projects && !error && <Skeleton />}
       {projects?.length === 0 && <EmptyState title="No project yet">Submit a codebase, or load the bundled sample, from Ingest.</EmptyState>}
-      <div className="grid-cards">
+      <div className="project-grid">
         {projects?.map((project) => {
           const language = project.summary.languages[0]?.language ?? "No parsed language";
           const done = [project.ingestionStatus, project.analysisStatus, project.summaryStatus, project.discrepancyStatus].filter((status) => status === "complete").length;
           return (
-            <article key={project.id} className="card stack">
+            <article key={project.id} className="card project-card">
               <MiniMap projectId={project.id} enabled={project.analysisStatus === "complete"} />
-              <h2>{project.name}</h2>
-              <p>{project.summary.fileCount} files · {language} · {project.summary.rejectedCount} flagged</p>
-              <div className="row">
-                <StatusBadge status={project.ingestionStatus} label="Ingest" />
-                <StatusBadge status={project.analysisStatus} label="Map" />
-                <StatusBadge status={project.summaryStatus} label="Intent" />
-                <StatusBadge status={project.reviewValidated ? "confirmed" : "not_started"} label="Review" />
-                <StatusBadge status={project.discrepancyStatus} label="Compare" />
+              <div className="stack">
+                <h2>{project.name}</h2>
+                <p>{project.summary.fileCount} files · {language} · {project.summary.rejectedCount} flagged</p>
+                <div className="row">
+                  <StatusBadge status={project.ingestionStatus} label="Ingest" />
+                  <StatusBadge status={project.analysisStatus} label="Map" />
+                  <StatusBadge status={project.summaryStatus} label="Intent" />
+                  <StatusBadge status={project.reviewValidated ? "confirmed" : "not_started"} label="Review" />
+                  <StatusBadge status={project.discrepancyStatus} label="Compare" />
+                </div>
+                <div className="meter-track" aria-hidden="true"><span style={{ width: `${(done / 4) * 100}%` }} /></div>
+                <Link className="button" to={`/dashboard/${project.id}`}>Open</Link>
               </div>
-              <div className="meter-track" aria-hidden="true"><span style={{ width: `${(done / 4) * 100}%` }} /></div>
-              <Link className="button" to={`/dashboard/${project.id}`}>Open</Link>
             </article>
           );
         })}

@@ -22,6 +22,8 @@
   backdrop-filter: blur(12px);
 }
 .topbar .grow { flex: 1; min-width: 0; }
+.bell { position: relative; }
+#project-switch { max-width: 280px; }
 .identity-chip {
   border-radius: var(--radius-pill); border: 1px solid var(--border-strong); background: var(--surface);
   padding: 6px 10px; font-size: var(--fs-xs); white-space: nowrap;
@@ -80,7 +82,20 @@
   .menu-btn { display: inline-flex; }
   .login-page { grid-template-columns: 1fr; }
   .login-copy { min-height: 240px; }
-  .topbar { flex-wrap: wrap; height: auto; min-height: var(--header-height); padding-top: 8px; padding-bottom: 8px; }
+  .topbar {
+    display: grid; height: auto; min-height: var(--header-height); padding-top: 8px; padding-bottom: 8px;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    grid-template-areas: "menu crumbs search bell" "project project project project" "identity identity identity identity";
+    align-items: center; row-gap: 8px;
+  }
+  .menu-btn { grid-area: menu; }
+  .topbar .grow { grid-area: crumbs; }
+  .topbar .search-btn { grid-area: search; }
+  .topbar .bell { grid-area: bell; justify-self: end; }
+  #project-switch { grid-area: project; width: 100%; max-width: none; }
+  .identity-chip { grid-area: identity; justify-self: start; white-space: normal; }
+  .crumbs { flex-wrap: nowrap; overflow: hidden; white-space: nowrap; }
+  .crumb-project { display: none; }
   .content { padding: 16px; }
   .steps-3 { grid-template-columns: 1fr; }
 }

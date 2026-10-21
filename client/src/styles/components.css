@@ -3,6 +3,11 @@
 .grid-2 { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: var(--space-4); }
 .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-3); }
 .grid-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 360px)); gap: var(--space-3); align-items: start; }
+.project-grid { display: grid; grid-template-columns: 1fr; gap: var(--space-3); }
+.project-card { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 8px 20px; align-items: center; }
+.project-card .stack > .button { align-self: flex-start; }
+.project-card .meter-track { align-self: stretch; }
+.project-card .mini-map { height: 148px; }
 .card > a.button, .card > button { align-self: start; }
 
 .card, .panel {
@@ -135,7 +140,7 @@ textarea { min-height: 120px; width: 100%; resize: vertical; }
 }
 .dialog { height: auto; width: min(480px, 100%); border-radius: var(--radius-xl); }
 
-.crumbs { display: flex; flex-wrap: wrap; gap: 6px; color: var(--text-muted); font-size: var(--fs-sm); }
+.crumbs { display: flex; flex-wrap: wrap; gap: 6px; color: var(--text-muted); font-size: var(--fs-sm); min-width: 0; }
 .crumbs a { color: var(--navy); text-decoration: none; }
 
 .palette {
@@ -205,7 +210,11 @@ tr.selected { background: var(--gold-wash); }
 
 .split { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
 .split.map { grid-template-columns: minmax(280px, 0.9fr) 1.1fr; align-items: start; }
-.mini-map { height: 92px; border-radius: var(--radius-md); background: var(--night-800); }
+.mini-map { height: 92px; border-radius: var(--radius-md); background: var(--night-800); width: 100%; }
+@media (max-width: 700px) {
+  .project-card { grid-template-columns: 1fr; }
+  .project-card .mini-map { height: 92px; }
+}
 
 @keyframes shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
 @keyframes draw-edge { to { stroke-dashoffset: 0; } }

@@ -187,7 +187,7 @@ export function AppShell() {
             <option value="">No project selected</option>
             {projects.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
           </select>
-          <button type="button" className="secondary" onClick={() => setPalette(true)}>Search</button>
+          <button type="button" className="secondary search-btn" onClick={() => setPalette(true)}>Search</button>
           <NotificationBell notices={notices} />
           <p className="identity-chip">Signed in as {user?.displayName} · {user?.identityLabel}</p>
         </header>
