@@ -32,6 +32,7 @@ import {
   summariesPayload,
   summaryDetail,
 } from "./pipeline.js";
+import { dashboardPayload, traceabilityPayload } from "./readModels.js";
 import { readZip } from "./ingest/zipSafe.js";
 import { SUPPORTED_LANGUAGE_NOTE } from "./ingest/classify.js";
 
@@ -144,6 +145,15 @@ export function createApp(db: AppDatabase, options: { maxUploadBytes?: number } 
 
   app.get("/api/v1/projects", (_req, res) => {
     res.json({ projects: listProjects(db) });
+  });
+
+  app.get("/api/v1/dashboard", (req, res, next) => {
+    try {
+      const projectId = typeof req.query.projectId === "string" && req.query.projectId ? req.query.projectId : undefined;
+      res.json(dashboardPayload(db, projectId));
+    } catch (error) {
+      next(error);
+    }
   });
 
   app.post("/api/v1/projects/upload", upload.fields([{ name: "archive", maxCount: 1 }, { name: "files", maxCount: 200 }]), (req, res, next) => {
@@ -341,6 +351,14 @@ export function createApp(db: AppDatabase, options: { maxUploadBytes?: number } 
     try {
       queueDiscrepancies(db, req.params.projectId);
       res.status(202).json({ projectId: req.params.projectId });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.get("/api/v1/projects/:projectId/traceability", (req, res, next) => {
+    try {
+      res.json(traceabilityPayload(db, req.params.projectId));
     } catch (error) {
       next(error);
     }

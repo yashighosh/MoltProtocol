@@ -131,5 +131,27 @@ describe("sprint 1 API", () => {
     expect(scores).toEqual([...scores].sort((a, b) => b - a));
     expect(discrepancies.body.items.some((item: { ruleId: string; codeExcerpt: string; intentText: string }) => item.ruleId === "discount-applied-after-tax" && item.codeExcerpt && item.intentText)).toBe(true);
     expect(discrepancies.body.message).toMatch(/unreviewed/i);
+
+    const dashboard = await request(app).get(`/api/v1/dashboard?projectId=${projectId}`).set("Authorization", `Bearer ${token}`);
+    expect(dashboard.status).toBe(200);
+    expect(dashboard.body.modulesParsed).toBeGreaterThan(0);
+    expect(dashboard.body.intentSummaries).toBeGreaterThan(0);
+    expect(dashboard.body.validatedByExperts).toBeGreaterThan(0);
+    expect(dashboard.body.confidence.low).toBeGreaterThan(0);
+    expect(dashboard.body.discrepancies).toBe(discrepancies.body.items.length);
+
+    const matrix = await request(app).get(`/api/v1/projects/${projectId}/traceability`).set("Authorization", `Bearer ${token}`);
+    expect(matrix.status).toBe(200);
+    expect(matrix.body.rows.some((row: { path: string; reviewStatus: string; reviewerName: string | null }) => row.path.includes("invoice") && row.reviewStatus === "confirmed" && row.reviewerName === "Ada Okonkwo")).toBe(true);
+    expect(matrix.body.rows.some((row: { path: string; reviewStatus: string }) => row.path.includes("overview.md") && row.reviewStatus === "unsupported")).toBe(true);
+  });
+
+  it("returns an empty dashboard before any project exists", async () => {
+    const { app, token } = await signedIn();
+    const dashboard = await request(app).get("/api/v1/dashboard").set("Authorization", `Bearer ${token}`);
+    expect(dashboard.status).toBe(200);
+    expect(dashboard.body.projectId).toBeNull();
+    expect(dashboard.body.modulesParsed).toBe(0);
+    expect(dashboard.body.stageProgress).toBeNull();
   });
 });
