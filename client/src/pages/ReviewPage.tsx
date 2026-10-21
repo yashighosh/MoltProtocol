@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ApiError, api } from "../api";
+import { EmptyState } from "../components/EmptyState";
+import { ErrorState } from "../components/ErrorState";
 import { IntentSummaryView } from "../components/IntentSummaryView";
+import { PageHeader } from "../components/PageHeader";
+import { Skeleton } from "../components/Skeleton";
 import { StatusBadge } from "../components/StatusBadge";
 import type { IntentSummary } from "../types";
 
@@ -23,7 +27,7 @@ export function ReviewPage() {
     }).catch((reason: Error) => setError(reason.message));
   }
 
-  useEffect(() => { load(); }, [projectId]);
+  useEffect(() => { load(); }, [projectId]); // eslint-disable-line react-hooks/exhaustive-deps
   const selected = reviews?.find((item) => item.id === selectedId) ?? null;
 
   async function confirm() {
@@ -50,10 +54,7 @@ export function ReviewPage() {
     setBusy(true);
     setError("");
     try {
-      await api(`/api/v1/summaries/${selected.id}/correct`, {
-        method: "POST",
-        body: JSON.stringify({ text: correction, acknowledgeOverride }),
-      });
+      await api(`/api/v1/summaries/${selected.id}/correct`, { method: "POST", body: JSON.stringify({ text: correction, acknowledgeOverride }) });
       setNotice("Correction stored. The previous text remains in the revision history.");
       setOverrideOpen(false);
       setCorrection("");
@@ -65,18 +66,15 @@ export function ReviewPage() {
     }
   }
 
-  if (!projectId) return <p className="callout">Open a project from the workspace first.</p>;
+  if (!projectId) return <EmptyState title="Open a project first"><Link to="/workspace">Open projects</Link></EmptyState>;
 
   return (
     <div className="stack">
-      <div>
-        <h1>Intent validation</h1>
-        <p className="lede">Confirm or correct an inferred summary. The signed-in demo identity is recorded. Reviewing one module does not stop analysis of the others.</p>
-      </div>
-      {error && <p className="callout error" role="alert">{error}</p>}
+      <PageHeader eyebrow="Live" title="Expert review" lede="Confirm or correct an inferred summary. The signed-in demo identity is recorded. Reviewing one module does not stop analysis of the others." />
+      {error && <ErrorState message={error} />}
       {notice && <p className="callout" role="status">{notice}</p>}
-      {reviews === null && <p aria-live="polite">Loading review queue…</p>}
-      {reviews?.length === 0 && <p className="callout">Nothing is in the review queue. Generate summaries, then send a module from <Link to={`/intent-summaries/${projectId}`}>Intent summaries</Link>.</p>}
+      {reviews === null && !error && <Skeleton />}
+      {reviews?.length === 0 && <EmptyState title="Nothing is in the review queue">Generate summaries, then send a module from <Link to={`/intent-summaries/${projectId}`}>Intent summaries</Link>.</EmptyState>}
       {reviews && reviews.length > 0 && (
         <div className="split map">
           <ul className="stack">
@@ -89,11 +87,9 @@ export function ReviewPage() {
             ))}
           </ul>
           {selected && (
-            <div className="panel stack">
-              <IntentSummaryView summary={selected} />
-              <div className="row">
-                <button type="button" disabled={busy || selected.status === "confirmed"} onClick={() => void confirm()}>Confirm as accurate</button>
-              </div>
+            <div className="card stack">
+              <IntentSummaryView summary={selected} showRationale />
+              <button type="button" disabled={busy || selected.status === "confirmed"} onClick={() => void confirm()}>Confirm as accurate</button>
               <label>
                 Corrected intent
                 <textarea value={correction} onChange={(event) => setCorrection(event.target.value)} placeholder="State the operational behavior this module is actually meant to perform." />
