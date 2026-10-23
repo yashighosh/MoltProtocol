@@ -20,6 +20,7 @@ export type Project = {
   name: string;
   sourceType: string;
   sourceRef: string | null;
+  demonstration?: boolean;
   ingestionStatus: string;
   ingestionStage: string;
   ingestionError: string | null;
@@ -89,6 +90,7 @@ export type IntentSummary = {
 export type DashboardData = {
   projectId: string | null;
   projectName: string | null;
+  demonstration: boolean;
   modulesParsed: number;
   intentSummaries: number;
   validatedByExperts: number;
@@ -96,9 +98,19 @@ export type DashboardData = {
   discrepancies: number;
   confidence: { low: number; medium: number; high: number };
   clusters: { directory: string; modules: number; low: number }[];
-  activity: { at: string; label: string; detail: string | null }[];
+  activity: { at: string; label: string; detail: string | null; actor: string | null }[];
   stageProgress: number | null;
   statuses: { ingestion: string; analysis: string; summary: string; discrepancy: string } | null;
+  fileCount: number;
+  flaggedFiles: number;
+  totalLoc: number;
+  edgesConfirmed: number;
+  edgesUnresolved: number;
+  reviewQueued: number;
+  unreviewed: number;
+  excludedUnreviewed: number;
+  topDiscrepancies: { id: string; impactRank: number; severity: string; description: string; moduleName: string; moduleId: string }[];
+  nextAction: { label: string; to: string | null; reason: string };
 };
 
 export type TraceRow = {

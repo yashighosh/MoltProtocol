@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../api";
 import { useAuth } from "../../auth";
+import { OpenDemoButton } from "../DemoActions";
 import { useToast } from "../Toast";
 
 const PEOPLE = [
@@ -40,7 +41,10 @@ export function SampleAccess() {
         <div className="stack">
           <h2 className="display">Open the sample project</h2>
           <p className="lead">Both accounts are persisted demo identities. The Demo identity label stays on every review. Password for both: demo-pass.</p>
-          <button type="button" className="pill" disabled={busy} onClick={() => void signInAda()}>{busy ? "Signing in…" : "Sign in as Ada"}</button>
+          <div className="row">
+            <button type="button" className="pill" disabled={busy} onClick={() => void signInAda()}>{busy ? "Signing in…" : "Sign in as Ada"}</button>
+            <OpenDemoButton />
+          </div>
         </div>
         <div className="identities">
           {PEOPLE.map(([name, email]) => (
