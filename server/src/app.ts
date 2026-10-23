@@ -32,6 +32,7 @@ import {
   summariesPayload,
   summaryDetail,
 } from "./pipeline.js";
+import { openDemoProject, resetDemoProject } from "./demo.js";
 import { dashboardPayload, traceabilityPayload } from "./readModels.js";
 import { readZip } from "./ingest/zipSafe.js";
 import { SUPPORTED_LANGUAGE_NOTE } from "./ingest/classify.js";
@@ -145,6 +146,24 @@ export function createApp(db: AppDatabase, options: { maxUploadBytes?: number } 
 
   app.get("/api/v1/projects", (_req, res) => {
     res.json({ projects: listProjects(db) });
+  });
+
+  app.post("/api/v1/demo/open", async (_req, res, next) => {
+    try {
+      const result = await openDemoProject(db, res.locals.user.id);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.post("/api/v1/demo/reset", async (_req, res, next) => {
+    try {
+      const result = await resetDemoProject(db);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
   });
 
   app.get("/api/v1/dashboard", (req, res, next) => {
