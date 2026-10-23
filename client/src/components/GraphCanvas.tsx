@@ -1,3 +1,14 @@
+import {
+  forceCenter,
+  forceCollide,
+  forceLink,
+  forceManyBody,
+  forceSimulation,
+  forceX,
+  forceY,
+  type SimulationLinkDatum,
+  type SimulationNodeDatum,
+} from "d3-force";
 import { jsPDF } from "jspdf";
 import { useMemo, useRef, useState } from "react";
 import type { GraphEdge, GraphNode } from "../types";
@@ -10,6 +21,49 @@ type Props = {
   onSelect: (id: string) => void;
 };
 
+type SimNode = SimulationNodeDatum & GraphNode;
+
+const PALETTE = ["#263b50", "#1f1d18", "#2f6040", "#2a557f", "#4a3b16", "#6e2e2b"];
+
+function colorFor(directory: string) {
+  let hash = 0;
+  for (const char of directory) hash = (hash * 33 + char.charCodeAt(0)) >>> 0;
+  return PALETTE[hash % PALETTE.length];
+}
+
+function layout(nodes: GraphNode[], edges: GraphEdge[]) {
+  const simNodes: SimNode[] = nodes.map((node, index) => ({
+    ...node,
+    x: 140 + (index % 5) * 160,
+    y: 100 + Math.floor(index / 5) * 120,
+  }));
+  const ids = new Set(simNodes.map((node) => node.id));
+  const links: SimulationLinkDatum<SimNode>[] = edges
+    .filter((edge) => ids.has(edge.from) && ids.has(edge.to))
+    .map((edge) => ({ source: edge.from, target: edge.to }));
+  const directories = [...new Set(simNodes.map((node) => node.directory))];
+  const simulation = forceSimulation(simNodes)
+    .force("link", forceLink<SimNode, SimulationLinkDatum<SimNode>>(links).id((node) => node.id).distance(120).strength(0.4))
+    .force("charge", forceManyBody().strength(-240))
+    .force("center", forceCenter(550, 340))
+    .force("collide", forceCollide(48))
+    .force("x", forceX<SimNode>((node) => 120 + Math.max(0, directories.indexOf(node.directory)) * 180).strength(0.14))
+    .force("y", forceY(340).strength(0.05))
+    .stop();
+  for (let tick = 0; tick < 240; tick += 1) simulation.tick();
+  const raw = simNodes.map((node) => ({ id: node.id, x: node.x ?? 0, y: node.y ?? 0 }));
+  const minX = Math.min(...raw.map((point) => point.x));
+  const maxX = Math.max(...raw.map((point) => point.x));
+  const minY = Math.min(...raw.map((point) => point.y));
+  const maxY = Math.max(...raw.map((point) => point.y));
+  const spanX = maxX - minX || 1;
+  const spanY = maxY - minY || 1;
+  return new Map(raw.map((point) => [point.id, {
+    x: 130 + ((point.x - minX) / spanX) * 840,
+    y: 70 + ((point.y - minY) / spanY) * 560,
+  }]));
+}
+
 export function GraphCanvas({ projectId, nodes, edges, selectedId, onSelect }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [scale, setScale] = useState(1);
@@ -18,11 +72,10 @@ export function GraphCanvas({ projectId, nodes, edges, selectedId, onSelect }: P
   const directories = [...new Set(nodes.map((node) => node.directory))];
   const [directory, setDirectory] = useState(nodes.length > 24 ? directories[0] ?? "all" : "all");
   const drag = useRef<{ x: number; y: number; panX: number; panY: number } | null>(null);
-
   const visibleNodes = nodes.filter((node) => directory === "all" || node.directory === directory || node.kind !== "file");
   const visibleIds = new Set(visibleNodes.map((node) => node.id));
   const visibleEdges = edges.filter((edge) => visibleIds.has(edge.from) && visibleIds.has(edge.to));
-  const positions = useMemo(() => layout(visibleNodes), [visibleNodes]);
+  const positions = useMemo(() => layout(visibleNodes, visibleEdges), [visibleNodes, visibleEdges]);
   const queryText = query.trim().toLowerCase();
 
   function exportCurrent(kind: "png" | "pdf") {
@@ -40,7 +93,7 @@ export function GraphCanvas({ projectId, nodes, edges, selectedId, onSelect }: P
       canvas.height = 1440;
       const context = canvas.getContext("2d");
       if (!context) return;
-      context.fillStyle = "#F0E9DC";
+      context.fillStyle = "#f4eee3";
       context.fillRect(0, 0, canvas.width, canvas.height);
       context.drawImage(image, 0, 0, canvas.width, canvas.height);
       URL.revokeObjectURL(url);
@@ -49,7 +102,7 @@ export function GraphCanvas({ projectId, nodes, edges, selectedId, onSelect }: P
       else {
         const pdf = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
         pdf.setFontSize(12);
-        pdf.text("MoltProtocol dependency map — current view", 32, 28);
+        pdf.text("MoltProtocol dependency map, current view", 32, 28);
         pdf.addImage(png, "PNG", 24, 40, 780, 500);
         pdf.save("dependency-map.pdf");
       }
@@ -88,15 +141,13 @@ export function GraphCanvas({ projectId, nodes, edges, selectedId, onSelect }: P
         <svg
           ref={svgRef}
           viewBox="0 0 1100 720"
-          role="img"
+          role="group"
           aria-label="Dependency map"
           onWheel={(event) => {
             event.preventDefault();
             setScale((value) => Math.min(2.4, Math.max(0.4, value + (event.deltaY < 0 ? 0.08 : -0.08))));
           }}
-          onPointerDown={(event) => {
-            drag.current = { x: event.clientX, y: event.clientY, panX: pan.x, panY: pan.y };
-          }}
+          onPointerDown={(event) => { drag.current = { x: event.clientX, y: event.clientY, panX: pan.x, panY: pan.y }; }}
           onPointerMove={(event) => {
             if (!drag.current) return;
             setPan({ x: drag.current.panX + event.clientX - drag.current.x, y: drag.current.panY + event.clientY - drag.current.y });
@@ -104,22 +155,20 @@ export function GraphCanvas({ projectId, nodes, edges, selectedId, onSelect }: P
           onPointerUp={() => { drag.current = null; }}
           onPointerLeave={() => { drag.current = null; }}
         >
-          <rect width="1100" height="720" fill="#F0E9DC" />
+          <rect width="1100" height="720" fill="#f4eee3" />
           <g transform={`translate(${pan.x} ${pan.y}) scale(${scale})`}>
             {visibleEdges.map((edge) => {
               const from = positions.get(edge.from);
               const to = positions.get(edge.to);
               if (!from || !to) return null;
+              const confirmed = edge.resolution === "confirmed";
               return (
                 <line
                   key={edge.id}
-                  x1={from.x + 150}
-                  y1={from.y + 18}
-                  x2={to.x}
-                  y2={to.y + 18}
-                  stroke={edge.resolution === "confirmed" ? "#263B50" : "#B18B42"}
-                  strokeDasharray={edge.resolution === "confirmed" ? undefined : "5 4"}
-                  strokeWidth="1.4"
+                  x1={from.x} y1={from.y} x2={to.x} y2={to.y}
+                  stroke={confirmed ? "#263b50" : "#7c5e17"}
+                  strokeWidth="1.6"
+                  className={confirmed ? "edge-confirmed" : "edge-unresolved"}
                 />
               );
             })}
@@ -144,9 +193,9 @@ export function GraphCanvas({ projectId, nodes, edges, selectedId, onSelect }: P
                     }
                   }}
                 >
-                  <rect width="160" height="36" rx="2" />
-                  <text x="8" y="22" fontFamily="ui-monospace, monospace" fontSize="11" fill="#292721">
-                    {(node.name.split("/").pop() ?? node.name).slice(0, 22)}
+                  <rect x={-78} y={-18} width="156" height="36" rx="12" fill={colorFor(node.directory)} />
+                  <text x="0" y="5" textAnchor="middle" fontFamily="ui-monospace, monospace" fontSize="11" fill="#f6f1e7">
+                    {(node.name.split("/").pop() ?? node.name).slice(0, 20)}
                   </text>
                 </g>
               );
@@ -156,21 +205,6 @@ export function GraphCanvas({ projectId, nodes, edges, selectedId, onSelect }: P
       </div>
     </div>
   );
-}
-
-function layout(nodes: GraphNode[]) {
-  const groups = new Map<string, GraphNode[]>();
-  for (const node of nodes) {
-    const key = node.directory || "(root)";
-    groups.set(key, [...(groups.get(key) ?? []), node]);
-  }
-  const positions = new Map<string, { x: number; y: number }>();
-  let column = 0;
-  for (const group of groups.values()) {
-    group.forEach((node, row) => positions.set(node.id, { x: 24 + column * 210, y: 24 + row * 56 }));
-    column += 1;
-  }
-  return positions;
 }
 
 function downloadUrl(url: string, filename: string) {

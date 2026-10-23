@@ -1,24 +1,88 @@
-import { NavLink, Outlet, useNavigate, useParams } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  BadgeCheck, FileSearch, FolderKanban, GitCompare, LayoutDashboard, ListChecks,
+  LogOut, Menu, PanelLeft, ScrollText, Settings, Share2, Shield, Upload, Workflow,
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import { NavLink, Outlet, useLocation, useNavigate, useParams } from "react-router-dom";
 import { api } from "../api";
 import { useAuth } from "../auth";
-import { StatusBadge } from "../components/StatusBadge";
-import { useEffect, useState } from "react";
+import { Breadcrumbs } from "../components/Breadcrumbs";
+import { CommandPalette } from "../components/CommandPalette";
+import { Logo } from "../components/Logo";
+import { NotificationBell, watchProject, type Notice } from "../components/NotificationBell";
+import { motionTokens } from "../motion";
 import type { Project } from "../types";
 
-const LINKS = [
-  ["01", "Workspace", "/workspace"],
-  ["02", "Ingestion", "/ingestion"],
-  ["03", "Dependency map", "/dependency-map"],
-  ["04", "Intent summaries", "/intent-summaries"],
-  ["05", "Expert review", "/intent-review"],
-  ["06", "Discrepancies", "/discrepancies"],
+const GROUPS = [
+  { label: "Overview", items: [
+    { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, tag: "Live" },
+    { to: "/workspace", label: "Projects", icon: FolderKanban, tag: "Live" },
+  ]},
+  { label: "Analysis", items: [
+    { to: "/ingestion", label: "Ingest", icon: Upload, tag: "Live" },
+    { to: "/progress", label: "Progress", icon: ListChecks, tag: "Live" },
+    { to: "/dependency-map", label: "Dependency map", icon: Share2, tag: "Live" },
+  ]},
+  { label: "Intent", items: [
+    { to: "/intent-summaries", label: "Intent summaries", icon: FileSearch, tag: "Live" },
+  ]},
+  { label: "Review", items: [
+    { to: "/intent-review", label: "Expert review", icon: BadgeCheck, tag: "Live" },
+    { to: "/discrepancies", label: "Discrepancies", icon: GitCompare, tag: "Live" },
+  ]},
+  { label: "Modernize", items: [
+    { to: "/rule-check", label: "Rule check", icon: Shield, tag: "Live" },
+    { to: "/architecture", label: "Architecture draft", icon: Workflow, tag: "Preview" },
+    { to: "/behavior", label: "Behavior checks", icon: ListChecks, tag: "Preview" },
+  ]},
+  { label: "Output", items: [
+    { to: "/traceability", label: "Traceability", icon: ScrollText, tag: "Live" },
+    { to: "/reports", label: "Reports", icon: FileSearch, tag: "Live" },
+  ]},
+  { label: "Settings", items: [
+    { to: "/settings", label: "Settings", icon: Settings, tag: "Live" },
+  ]},
 ];
 
+const NAMES: Record<string, string> = {
+  dashboard: "Dashboard",
+  workspace: "Projects",
+  ingestion: "Ingest",
+  progress: "Progress",
+  "dependency-map": "Dependency map",
+  "intent-summaries": "Intent summaries",
+  "intent-review": "Expert review",
+  discrepancies: "Discrepancies",
+  "rule-check": "Rule check",
+  architecture: "Architecture draft",
+  behavior: "Behavior checks",
+  traceability: "Traceability",
+  reports: "Reports",
+  settings: "Settings",
+};
+
+function hrefFor(path: string, projectId?: string) {
+  if (!projectId || path === "/workspace") return path;
+  return `${path}/${projectId}`;
+}
+
 export function AppShell() {
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
   const { projectId } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const [project, setProject] = useState<Project | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [collapsed, setCollapsed] = useState(localStorage.getItem("moltprotocol-sidebar") === "1");
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [palette, setPalette] = useState(false);
+  const [notices, setNotices] = useState<Notice[]>([]);
+  const [welcome, setWelcome] = useState(localStorage.getItem("moltprotocol-welcome-seen") !== "1");
+
+  useEffect(() => {
+    api<{ projects: Project[] }>("/api/v1/projects").then((result) => setProjects(result.projects)).catch(() => setProjects([]));
+  }, [projectId, location.pathname]);
 
   useEffect(() => {
     if (!projectId) {
@@ -26,60 +90,137 @@ export function AppShell() {
       return;
     }
     let stop = false;
+    let timer = 0;
+    let previous: Project | null = null;
     const tick = () => {
       api<Project>(`/api/v1/projects/${projectId}`).then((result) => {
-        if (!stop) setProject(result);
-      }).catch(() => {
-        if (!stop) setProject(null);
-      });
+        if (stop) return;
+        setNotices((current) => [...watchProject(previous, result), ...current].slice(0, 12));
+        previous = result;
+        setProject(result);
+      }).catch(() => { if (!stop) setProject(null); });
     };
-    tick();
-    const timer = window.setInterval(tick, 2000);
-    return () => { stop = true; window.clearInterval(timer); };
+    const start = () => {
+      window.clearInterval(timer);
+      if (document.hidden) return;
+      tick();
+      timer = window.setInterval(tick, 2000);
+    };
+    start();
+    document.addEventListener("visibilitychange", start);
+    return () => {
+      stop = true;
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", start);
+    };
   }, [projectId]);
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setPalette(true);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   async function signOut() {
     await api("/api/v1/auth/logout", { method: "POST" });
+    setUser(null);
     navigate("/");
-    window.location.assign("/");
   }
 
+  function toggleSidebar() {
+    setCollapsed((value) => {
+      localStorage.setItem("moltprotocol-sidebar", value ? "0" : "1");
+      return !value;
+    });
+  }
+
+  const section = location.pathname.split("/").filter(Boolean)[0] ?? "dashboard";
+  const crumbs = [
+    { label: "Workbench", to: "/dashboard" },
+    ...(project ? [{ label: project.name, to: `/dashboard/${project.id}` }] : []),
+    { label: NAMES[section] ?? "Page" },
+  ];
+
   return (
-    <div className="shell">
+    <div className={`shell${collapsed ? " collapsed" : ""}`}>
       <a className="skip-link" href="#content">Skip to content</a>
-      <aside className="sidebar">
-        <p className="wordmark">MoltProtocol <span>Intent workbench</span></p>
-        <nav className="nav" aria-label="Workbench">
-          {LINKS.map(([index, label, path]) => {
-            const href = projectId && path !== "/workspace" ? `${path}/${projectId}` : path;
-            return (
-              <NavLink key={path} to={href}>
-                <small>{index}</small>
-                <span>{label}</span>
-              </NavLink>
-            );
-          })}
+      <aside className={`sidebar on-dark${menuOpen ? " open" : ""}`}>
+        <Logo compact={collapsed} inverse />
+        <nav aria-label="Workbench">
+          {GROUPS.map((group) => (
+            <div className="nav-group" key={group.label}>
+              <p>{group.label}</p>
+              {group.items.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <NavLink key={item.to} className={({ isActive }) => `nav-link${isActive ? " active" : ""}`} to={hrefFor(item.to, projectId)} title={item.label} onClick={() => setMenuOpen(false)}>
+                    <Icon size={18} aria-hidden="true" />
+                    <span className="label">{item.label}</span>
+                    <span className={`tag${item.tag === "Live" ? " live" : ""}`}>{item.tag}</span>
+                  </NavLink>
+                );
+              })}
+            </div>
+          ))}
         </nav>
-        <button type="button" className="secondary signout" onClick={() => void signOut()}>Sign out</button>
+        <div className="side-foot">
+          <button type="button" className="side-action" aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"} title={collapsed ? "Expand sidebar" : "Collapse sidebar"} onClick={toggleSidebar}>
+            <PanelLeft size={18} aria-hidden="true" />
+            <span>{collapsed ? "Expand" : "Collapse"}</span>
+          </button>
+          <button type="button" className="side-action" aria-label="Sign out" title="Sign out" onClick={() => void signOut()}>
+            <LogOut size={18} aria-hidden="true" />
+            <span>Sign out</span>
+          </button>
+        </div>
       </aside>
-      <div className="main">
+      <div className="main-col">
         <header className="topbar">
-          <div>
-            <p>{project ? project.name : "No project selected"}</p>
-            {project && (
-              <p className="identity">
-                Ingestion <StatusBadge status={project.ingestionStatus} /> Analysis <StatusBadge status={project.analysisStatus} />
-              </p>
-            )}
+          <button type="button" className="icon-btn menu-btn chrome-control" aria-label="Open navigation" onClick={() => setMenuOpen((value) => !value)}><Menu size={18} /></button>
+          <div className="grow stack" style={{ gap: 2 }}>
+            <Breadcrumbs items={crumbs} />
           </div>
-          <p className="identity">
-            Signed in as {user?.displayName} · {user?.identityLabel}
-          </p>
+          <label className="visually-hidden" htmlFor="project-switch">Project</label>
+          <select id="project-switch" className="chrome-control" aria-label="Project" value={projectId ?? ""} onChange={(event) => {
+            const next = event.target.value;
+            const base = `/${section}`;
+            navigate(next ? hrefFor(base, next) : base);
+          }}>
+            <option value="">No project selected</option>
+            {projects.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+          </select>
+          <button type="button" className="secondary search-btn chrome-control" onClick={() => setPalette(true)}>Search</button>
+          <NotificationBell notices={notices} />
+          <p className="identity-chip chrome-control">Signed in as {user?.displayName} · {user?.identityLabel}</p>
         </header>
         <main id="content" className="content">
-          <Outlet />
+          <AnimatePresence mode="wait">
+            <motion.div key={location.pathname} initial={{ opacity: 0, y: motionTokens.distance }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: motionTokens.duration.slow, ease: motionTokens.ease }}>
+              <Outlet />
+            </motion.div>
+          </AnimatePresence>
         </main>
       </div>
+      <CommandPalette projectId={projectId} open={palette} onClose={() => setPalette(false)} />
+      {welcome && (
+        <div className="dialog-backdrop">
+          <div className="dialog onboard stack" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
+            <h2 id="welcome-title">Three places to start</h2>
+            <p>Inference is not sign-off. Read the code, get a named review, then look at the conflicts.</p>
+            <div className="steps-3">
+              <article className="card"><h3>Ingest</h3><p>Bring in the codebase. Flagged files stay visible.</p></article>
+              <article className="card"><h3>Validate</h3><p>Confirm or correct an intent with this demo identity.</p></article>
+              <article className="card"><h3>Compare</h3><p>See code and validated intent together.</p></article>
+            </div>
+            <button type="button" onClick={() => { localStorage.setItem("moltprotocol-welcome-seen", "1"); setWelcome(false); }}>Continue</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

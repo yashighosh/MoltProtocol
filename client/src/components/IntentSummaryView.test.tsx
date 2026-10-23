@@ -27,7 +27,7 @@ describe("IntentSummaryView", () => {
   it("shows the low-confidence warning and the source range", () => {
     render(<IntentSummaryView summary={summary} />);
     expect(screen.getByText(/Manual review required/)).toBeInTheDocument();
-    expect(screen.getByText(/low confidence/)).toBeInTheDocument();
+    expect(screen.getAllByText(/low confidence/).length).toBeGreaterThan(0);
     expect(screen.getByText(/util\/scratch.js:1-1/)).toBeInTheDocument();
     expect(screen.getByText(/Demonstration mode/)).toBeInTheDocument();
   });

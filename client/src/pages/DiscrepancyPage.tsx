@@ -1,12 +1,16 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ApiError, api } from "../api";
+import { EmptyState } from "../components/EmptyState";
+import { ErrorState } from "../components/ErrorState";
+import { PageHeader } from "../components/PageHeader";
+import { Skeleton } from "../components/Skeleton";
 import { StatusBadge } from "../components/StatusBadge";
 import type { Discrepancy } from "../types";
 
 export function DiscrepancyPage() {
   const { projectId } = useParams();
-  const [items, setItems] = useState<Discrepancy[]>([]);
+  const [items, setItems] = useState<Discrepancy[] | null>(null);
   const [message, setMessage] = useState("");
   const [status, setStatus] = useState("not_started");
   const [severity, setSeverity] = useState("all");
@@ -25,7 +29,7 @@ export function DiscrepancyPage() {
     }).catch((reason: Error) => setError(reason.message));
   }
 
-  useEffect(() => { load(); }, [projectId]);
+  useEffect(() => { load(); }, [projectId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function detect() {
     if (!projectId) return;
@@ -36,7 +40,7 @@ export function DiscrepancyPage() {
       const started = Date.now();
       const timer = window.setInterval(() => {
         api<{ discrepancyStatus: string }>(`/api/v1/projects/${projectId}`).then((project) => {
-          const current = (project as { discrepancyStatus: string }).discrepancyStatus;
+          const current = project.discrepancyStatus;
           if (current === "complete" || current === "blocked" || current === "failed" || Date.now() - started > 20000) {
             window.clearInterval(timer);
             setBusy(false);
@@ -55,24 +59,20 @@ export function DiscrepancyPage() {
     load();
   }
 
-  if (!projectId) return <p className="callout">Open a project from the workspace first.</p>;
-  const visible = items.filter((item) => (severity === "all" || item.severity === severity) && (stateFilter === "all" || item.status === stateFilter));
+  if (!projectId) return <EmptyState title="Open a project first"><Link to="/workspace">Open projects</Link></EmptyState>;
+  const visible = (items ?? []).filter((item) => (severity === "all" || item.severity === severity) && (stateFilter === "all" || item.status === stateFilter));
   const selected = visible.find((item) => item.id === selectedId) ?? visible[0];
 
   return (
     <div className="stack">
-      <div>
-        <h1>Code versus intent discrepancies</h1>
-        <p className="lede">Comparison uses validated intent only. A flag is a potential mismatch in the static evidence, not proof of a runtime defect.</p>
-      </div>
-      {error && <p className="callout error" role="alert">{error}</p>}
-      <div className="row">
-        <button type="button" disabled={busy} onClick={() => void detect()}>{busy ? "Comparing…" : "Run discrepancy detection"}</button>
-        <StatusBadge status={status} />
-      </div>
+      <PageHeader eyebrow="Live" title="Discrepancies" lede="Comparison uses validated intent only. A flag is a potential mismatch in the static evidence, not proof of a runtime defect." actions={<button type="button" disabled={busy} onClick={() => void detect()}>{busy ? "Comparing…" : "Run discrepancy detection"}</button>} />
+      {error && <ErrorState message={error} />}
+      <StatusBadge status={status} />
       {message && <p className="callout" role="status">{message}</p>}
       {status === "blocked" && <p>Validate at least one summary in <Link to={`/intent-review/${projectId}`}>expert review</Link> before expecting a list.</p>}
-      {items.length > 0 && (
+      {items === null && !error && <Skeleton />}
+      {items && items.length === 0 && status !== "blocked" && <EmptyState title="No discrepancies recorded">Run detection after at least one summary is confirmed or corrected. An empty list is not hidden: it means none were stored.</EmptyState>}
+      {items && items.length > 0 && (
         <>
           <div className="row">
             <label>Severity
@@ -97,12 +97,10 @@ export function DiscrepancyPage() {
               <thead><tr><th>Rank</th><th>Module</th><th>Severity</th><th>Impact</th><th>Status</th></tr></thead>
               <tbody>
                 {visible.map((item) => (
-                  <tr key={item.id} className={selected?.id === item.id ? "selected" : ""} onClick={() => setSelectedId(item.id)}>
+                  <tr key={item.id} className={selected?.id === item.id ? "selected" : ""}>
                     <td className="mono">{item.impactRank}</td>
                     <td>
-                      <button type="button" className="quiet" aria-pressed={selected?.id === item.id} onClick={() => setSelectedId(item.id)}>
-                        {item.moduleName}
-                      </button>
+                      <button type="button" className="quiet" aria-pressed={selected?.id === item.id} onClick={() => setSelectedId(item.id)}>{item.moduleName}</button>
                     </td>
                     <td><StatusBadge status={item.severity} /></td>
                     <td className="mono">{item.impactScore}</td>
@@ -112,7 +110,7 @@ export function DiscrepancyPage() {
               </tbody>
             </table>
             {selected && (
-              <article className="panel stack">
+              <article className="card stack">
                 <h2>{selected.ruleId}</h2>
                 <p>{selected.description}</p>
                 <div className="split">
@@ -125,7 +123,15 @@ export function DiscrepancyPage() {
                     <p>{selected.intentText}</p>
                   </div>
                 </div>
-                <p className="mono">Impact factors — severity {selected.factors.severity}, centrality {selected.factors.centrality}, intent confidence {selected.factors.intentConfidence}</p>
+                <div className="bars">
+                  {Object.entries(selected.factors).map(([key, value]) => (
+                    <div className="bar-row" key={key}>
+                      <span>{key}</span>
+                      <i aria-hidden="true"><span style={{ width: `${Math.round(Number(value) * 100)}%` }} /></i>
+                      <span className="mono">{value}</span>
+                    </div>
+                  ))}
+                </div>
                 <div className="row">
                   <Link to={`/dependency-map/${projectId}?module=${selected.moduleId}`}>Open module on the map</Link>
                   <Link to={`/intent-summaries/${projectId}?summary=${selected.summaryId}`}>Open intent summary</Link>

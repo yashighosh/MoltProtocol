@@ -1,3 +1,4 @@
+import { Upload } from "lucide-react";
 import { useState } from "react";
 
 export type IngestionMode = "upload" | "git";
@@ -20,6 +21,7 @@ export function IngestionChooser({
   const [url, setUrl] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [error, setError] = useState("");
+  const [hot, setHot] = useState(false);
 
   function validate(): string {
     if (!name.trim()) return "Enter a project name before submitting.";
@@ -46,11 +48,17 @@ export function IngestionChooser({
 
   return (
     <form className="stack" onSubmit={submit}>
-      <div className="choice" role="group" aria-label="Ingestion source">
+      <div className="segmented" role="group" aria-label="Ingestion source">
         <button type="button" aria-pressed={mode === "upload"} onClick={() => setMode("upload")}>Upload archive</button>
         <button type="button" aria-pressed={mode === "git"} onClick={() => setMode("git")}>Git URL</button>
       </div>
-      <p className="lede">
+      <div className="row">
+        <span className="chip">JavaScript</span>
+        <span className="chip">TypeScript</span>
+        <span className="chip">20 MB limit</span>
+        <span className="chip">https only</span>
+      </div>
+      <p className="lead">
         Supported for parsing: JavaScript and TypeScript (.js, .jsx, .mjs, .cjs, .ts, .tsx). Other files are kept and flagged, not dropped.
         Zip uploads and clones are limited to 20 MB. Git URLs must be public https links on github.com, gitlab.com, or bitbucket.org. Nothing in the repository is executed.
       </p>
@@ -59,16 +67,23 @@ export function IngestionChooser({
         <input value={name} onChange={(event) => setName(event.target.value)} name="projectName" autoComplete="off" />
       </label>
       {mode === "upload" ? (
-        <label>
-          Archive or source files
-          <input
-            key="upload"
-            type="file"
-            name="files"
-            multiple
-            onChange={(event) => setFiles([...(event.target.files ?? [])])}
-          />
-        </label>
+        <div
+          className={`dropzone${hot ? " hot" : ""}`}
+          onDragOver={(event) => { event.preventDefault(); setHot(true); }}
+          onDragLeave={() => setHot(false)}
+          onDrop={(event) => {
+            event.preventDefault();
+            setHot(false);
+            setFiles([...event.dataTransfer.files]);
+          }}
+        >
+          <Upload aria-hidden="true" />
+          <strong>Drop a zip or source files</strong>
+          <label>
+            Archive or source files
+            <input key="upload" type="file" name="files" multiple onChange={(event) => setFiles([...(event.target.files ?? [])])} />
+          </label>
+        </div>
       ) : (
         <label>
           Git URL
