@@ -30,7 +30,7 @@ describe("AppShell", () => {
         </AuthProvider>
       </MemoryRouter>,
     );
-    expect(await screen.findByText(/Signed in as Ada Okonkwo/)).toBeInTheDocument();
+    expect(await screen.findByText(/Ada Okonkwo/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Search" })).toHaveClass("chrome-control");
     expect(screen.getByRole("button", { name: "Notifications" })).toHaveClass("chrome-control");
     expect(screen.getByRole("combobox", { name: "Project" })).toHaveClass("chrome-control");

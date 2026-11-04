@@ -40,10 +40,17 @@
 .topbar select.chrome-control { border-radius: var(--radius-pill); padding: 0 12px; }
 .topbar .search-btn { color: var(--text-primary); font-weight: 500; border-radius: var(--radius-pill); padding: 0 14px; }
 .identity-chip {
-  display: inline-flex; align-items: center; margin: 0;
+  display: flex; align-items: center; gap: 8px;
   border-radius: var(--radius-pill); border: 1px solid var(--border-strong); background: var(--surface);
-  padding: 0 12px; font-size: var(--fs-sm); font-weight: 500; white-space: nowrap;
+  padding: 5px 12px 5px 5px; font-size: var(--fs-xs); white-space: nowrap;
 }
+.identity-avatar {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--gold); color: var(--night-900);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.04em; flex-shrink: 0;
+}
+.identity-name { font-weight: 550; color: var(--text-primary); }
 .content { padding: 24px; width: min(100%, 1280px); }
 .icon-btn {
   width: 40px; height: 40px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
