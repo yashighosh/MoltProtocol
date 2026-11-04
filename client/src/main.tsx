@@ -13,6 +13,7 @@ import "./styles/base.css";
 import "./styles/components.css";
 import "./styles/landing.css";
 import "./styles/app.css";
+import "./styles/workspaces.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
