@@ -54,8 +54,6 @@ export function LoginForm({
       </label>
       {(localError || error) && <p className="field-error" role="alert">{localError || error}</p>}
       <button type="submit" disabled={busy}>{busy ? "Checking identity…" : "Sign in"}</button>
-      <p className="mono">Demo identity · ada.okonkwo@moltprotocol.demo · password demo-pass</p>
-      <p className="mono">Demo identity · ravi.shah@moltprotocol.demo · password demo-pass</p>
       <Link to="/">Back to the introduction</Link>
     </form>
   );
@@ -87,7 +85,7 @@ export function LoginPage() {
         <div className="hero-mesh" aria-hidden="true" />
         <Logo inverse />
         <h1>Sign in before the codebase is treated as understood.</h1>
-        <p>The name on this session is the name stored when you confirm or correct an intent summary.</p>
+        <p>Every intent you confirm or correct is stored under your name. Inference is not sign-off until a named person reviews it.</p>
       </section>
       <section className="login-panel">
         <LoginForm busy={busy} error={error} onSubmit={(email, password) => void onSubmit(email, password)} />
