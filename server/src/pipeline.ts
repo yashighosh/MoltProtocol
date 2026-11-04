@@ -176,8 +176,10 @@ export function startGitProject(db: AppDatabase, input: { name: string; userId: 
   return id;
 }
 
-export function startSampleProject(db: AppDatabase, input: { name: string; userId: string }) {
-  const id = insertProject(db, { name: input.name.trim() || "Sample legacy billing", sourceType: "sample", sourceRef: "fixtures/sample-legacy", userId: input.userId });
+export const DEMO_SOURCE_REF = "demo:fixtures/sample-legacy";
+
+export function startSampleProject(db: AppDatabase, input: { name: string; userId: string; sourceRef?: string }) {
+  const id = insertProject(db, { name: input.name.trim() || "Sample legacy billing", sourceType: "sample", sourceRef: input.sourceRef ?? "fixtures/sample-legacy", userId: input.userId });
   const dest = sourceDirectory(id);
   mkdirSync(dest, { recursive: true });
   cpSync(path.join(repositoryRoot(), "fixtures", "sample-legacy"), dest, { recursive: true });
@@ -690,6 +692,7 @@ export function projectPayload(db: AppDatabase, projectId: string) {
     name: project.name,
     sourceType: project.source_type,
     sourceRef: project.source_ref,
+    demonstration: project.source_ref === DEMO_SOURCE_REF,
     ingestionStatus: project.ingestion_status,
     ingestionStage: project.ingestion_stage,
     ingestionError: project.ingestion_error,

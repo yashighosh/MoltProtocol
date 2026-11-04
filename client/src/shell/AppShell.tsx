@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import {
   BadgeCheck, FileSearch, FolderKanban, GitCompare, LayoutDashboard, ListChecks,
-  Menu, ScrollText, Settings, Share2, Shield, Upload, Workflow,
+  LogOut, Menu, PanelLeft, Scale, ScrollText, Settings, Share2, Shield, Upload, Workflow,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate, useParams } from "react-router-dom";
@@ -11,6 +11,7 @@ import { Breadcrumbs } from "../components/Breadcrumbs";
 import { CommandPalette } from "../components/CommandPalette";
 import { Logo } from "../components/Logo";
 import { NotificationBell, watchProject, type Notice } from "../components/NotificationBell";
+import { motionTokens } from "../motion";
 import type { Project } from "../types";
 
 const GROUPS = [
@@ -25,18 +26,20 @@ const GROUPS = [
   ]},
   { label: "Intent", items: [
     { to: "/intent-summaries", label: "Intent summaries", icon: FileSearch, tag: "Live" },
+    { to: "/rules", label: "Rules", icon: Scale, tag: "Preview" },
   ]},
   { label: "Review", items: [
     { to: "/intent-review", label: "Expert review", icon: BadgeCheck, tag: "Live" },
     { to: "/discrepancies", label: "Discrepancies", icon: GitCompare, tag: "Live" },
   ]},
   { label: "Modernize", items: [
-    { to: "/rule-check", label: "Rule check", icon: Shield, tag: "Live" },
-    { to: "/architecture", label: "Architecture draft", icon: Workflow, tag: "Preview" },
-    { to: "/behavior", label: "Behavior checks", icon: ListChecks, tag: "Preview" },
+    { to: "/architecture", label: "Architecture", icon: Workflow, tag: "Preview" },
+    { to: "/rule-check", label: "Rule preservation", icon: Shield, tag: "Preview" },
+    { to: "/behavior", label: "Behavior testing", icon: ListChecks, tag: "Preview" },
   ]},
   { label: "Output", items: [
-    { to: "/traceability", label: "Traceability", icon: ScrollText, tag: "Live" },
+    { to: "/traceability", label: "Compliance and traceability", icon: ScrollText, tag: "Live" },
+    { to: "/leadership", label: "Leadership view", icon: LayoutDashboard, tag: "Preview" },
     { to: "/reports", label: "Reports", icon: FileSearch, tag: "Live" },
   ]},
   { label: "Settings", items: [
@@ -51,12 +54,14 @@ const NAMES: Record<string, string> = {
   progress: "Progress",
   "dependency-map": "Dependency map",
   "intent-summaries": "Intent summaries",
+  rules: "Rules",
   "intent-review": "Expert review",
   discrepancies: "Discrepancies",
-  "rule-check": "Rule check",
-  architecture: "Architecture draft",
-  behavior: "Behavior checks",
-  traceability: "Traceability",
+  "rule-check": "Rule preservation",
+  architecture: "Architecture",
+  behavior: "Behavior testing",
+  traceability: "Compliance and traceability",
+  leadership: "Leadership view",
   reports: "Reports",
   settings: "Settings",
 };
@@ -148,7 +153,7 @@ export function AppShell() {
   return (
     <div className={`shell${collapsed ? " collapsed" : ""}`}>
       <a className="skip-link" href="#content">Skip to content</a>
-      <aside className={`sidebar${menuOpen ? " open" : ""}`}>
+      <aside className={`sidebar on-dark${menuOpen ? " open" : ""}`}>
         <Logo compact={collapsed} inverse />
         <nav aria-label="Workbench">
           {GROUPS.map((group) => (
@@ -157,8 +162,8 @@ export function AppShell() {
               {group.items.map((item) => {
                 const Icon = item.icon;
                 return (
-                  <NavLink key={item.to} className={({ isActive }) => `nav-link${isActive ? " active" : ""}`} to={hrefFor(item.to, projectId)} onClick={() => setMenuOpen(false)}>
-                    <Icon size={16} aria-hidden="true" />
+                  <NavLink key={item.to} className={({ isActive }) => `nav-link${isActive ? " active" : ""}`} to={hrefFor(item.to, projectId)} title={item.label} onClick={() => setMenuOpen(false)}>
+                    <Icon size={18} aria-hidden="true" />
                     <span className="label">{item.label}</span>
                     <span className={`tag${item.tag === "Live" ? " live" : ""}`}>{item.tag}</span>
                   </NavLink>
@@ -168,18 +173,24 @@ export function AppShell() {
           ))}
         </nav>
         <div className="side-foot">
-          <button type="button" className="secondary" onClick={toggleSidebar}>{collapsed ? "Expand" : "Collapse"}</button>
-          <button type="button" className="secondary" onClick={() => void signOut()}>Sign out</button>
+          <button type="button" className="side-action" aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"} title={collapsed ? "Expand sidebar" : "Collapse sidebar"} onClick={toggleSidebar}>
+            <PanelLeft size={18} aria-hidden="true" />
+            <span>{collapsed ? "Expand" : "Collapse"}</span>
+          </button>
+          <button type="button" className="side-action" aria-label="Sign out" title="Sign out" onClick={() => void signOut()}>
+            <LogOut size={18} aria-hidden="true" />
+            <span>Sign out</span>
+          </button>
         </div>
       </aside>
       <div className="main-col">
         <header className="topbar">
-          <button type="button" className="icon-btn menu-btn" aria-label="Open navigation" onClick={() => setMenuOpen((value) => !value)}><Menu size={16} /></button>
+          <button type="button" className="icon-btn menu-btn chrome-control" aria-label="Open navigation" onClick={() => setMenuOpen((value) => !value)}><Menu size={18} /></button>
           <div className="grow stack" style={{ gap: 2 }}>
             <Breadcrumbs items={crumbs} />
           </div>
           <label className="visually-hidden" htmlFor="project-switch">Project</label>
-          <select id="project-switch" aria-label="Project" value={projectId ?? ""} onChange={(event) => {
+          <select id="project-switch" className="chrome-control" aria-label="Project" value={projectId ?? ""} onChange={(event) => {
             const next = event.target.value;
             const base = `/${section}`;
             navigate(next ? hrefFor(base, next) : base);
@@ -187,7 +198,7 @@ export function AppShell() {
             <option value="">No project selected</option>
             {projects.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
           </select>
-          <button type="button" className="secondary search-btn" onClick={() => setPalette(true)}>Search</button>
+          <button type="button" className="secondary search-btn chrome-control" onClick={() => setPalette(true)}>Search</button>
           <NotificationBell notices={notices} />
           {user && (
             <div className="identity-chip" title={user.email}>
@@ -198,9 +209,9 @@ export function AppShell() {
             </div>
           )}
         </header>
-        <main id="content" className="content">
+        <main id="content" className={`content${["architecture", "rule-check", "behavior", "traceability", "leadership", "rules"].includes(section) ? " wide" : ""}`}>
           <AnimatePresence mode="wait">
-            <motion.div key={location.pathname} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.28 }}>
+            <motion.div key={location.pathname} initial={{ opacity: 0, y: motionTokens.distance }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: motionTokens.duration.slow, ease: motionTokens.ease }}>
               <Outlet />
             </motion.div>
           </AnimatePresence>

@@ -13,6 +13,13 @@ export function CommandPalette({ projectId, open, onClose }: { projectId?: strin
 
   useEffect(() => {
     if (!open) return;
+    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
+  useEffect(() => {
+    if (!open) return;
     setQuery("");
     if (!projectId) {
       setHits([]);

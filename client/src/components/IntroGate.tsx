@@ -57,6 +57,7 @@ export function IntroGate({ children }: { children: React.ReactNode }) {
               <circle key={node.cx} className="node-pop" cx={node.cx} cy={node.cy} r="7" fill={node.cx === 70 || node.cx === 510 ? "#c9a24a" : "#f4eee3"} style={{ animationDelay: node.delay }} />
             ))}
           </svg>
+          <p className="intro-mark">MoltProtocol</p>
           <div className="intro-line" aria-hidden="true"><span /></div>
           <p className="intro-copy">Understand. Recover intent. Modernize with confidence.</p>
         </div>

@@ -23,11 +23,17 @@ export function NotificationBell({ notices }: { notices: Notice[] }) {
   const [open, setOpen] = useState(false);
   const [seen, setSeen] = useState(0);
   useEffect(() => { if (open) setSeen(notices.length); }, [open, notices.length]);
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") setOpen(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
   const unread = Math.max(0, notices.length - seen);
   return (
     <div className="bell">
-      <button type="button" className="icon-btn" aria-label="Notifications" aria-expanded={open} onClick={() => setOpen((value) => !value)}>
-        <Bell size={16} />
+      <button type="button" className="icon-btn chrome-control" aria-label="Notifications" aria-expanded={open} onClick={() => setOpen((value) => !value)}>
+        <Bell size={18} />
         {unread > 0 && <span className="bell-count">{unread}</span>}
       </button>
       {open && (

@@ -224,8 +224,12 @@ tr.selected { background: var(--gold-wash); }
   .page-head { align-items: start; }
   .bar-row { grid-template-columns: 1fr; }
 }
+.badge .lucide-loader-circle { animation: badge-spin 1s linear infinite; }
+@keyframes badge-spin { to { transform: rotate(360deg); } }
+
 @media (prefers-reduced-motion: reduce) {
   .edge-confirmed { animation: none; stroke-dashoffset: 0; }
   .skeleton i { animation: none; }
   .card:hover, .pill:hover { transform: none; }
+  .badge .lucide-loader-circle { animation: none; }
 }

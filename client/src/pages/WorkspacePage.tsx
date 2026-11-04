@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api";
+import { OpenDemoButton, ResetDemoButton } from "../components/DemoActions";
 import { EmptyState } from "../components/EmptyState";
 import { ErrorState } from "../components/ErrorState";
 import { PageHeader } from "../components/PageHeader";
@@ -43,10 +44,10 @@ export function WorkspacePage() {
 
   return (
     <div className="stack">
-      <PageHeader eyebrow="Live" title="Projects" lede="Each analysis is one project. Ingestion, the dependency map, intent, review, and discrepancies share that identifier." actions={<Link className="button" to="/ingestion">New project</Link>} />
+      <PageHeader eyebrow="Live" title="Projects" lede="Each analysis is one project. Ingestion, the dependency map, intent, review, and discrepancies share that identifier." actions={<span className="row"><OpenDemoButton /><Link className="button secondary" to="/ingestion">New project</Link></span>} />
       {error && <ErrorState message={error} onRetry={load} />}
       {!projects && !error && <Skeleton />}
-      {projects?.length === 0 && <EmptyState title="No project yet">Submit a codebase, or load the bundled sample, from Ingest.</EmptyState>}
+      {projects?.length === 0 && <EmptyState title="No project yet">Open the demonstration project, or submit a codebase from Ingest.</EmptyState>}
       <div className="project-grid">
         {projects?.map((project) => {
           const language = project.summary.languages[0]?.language ?? "No parsed language";
@@ -56,6 +57,7 @@ export function WorkspacePage() {
               <MiniMap projectId={project.id} enabled={project.analysisStatus === "complete"} />
               <div className="stack">
                 <h2>{project.name}</h2>
+              {project.demonstration && <span className="demo-flag">Demonstration data</span>}
                 <p>{project.summary.fileCount} files · {language} · {project.summary.rejectedCount} flagged</p>
                 <div className="row">
                   <StatusBadge status={project.ingestionStatus} label="Ingest" />
@@ -65,7 +67,10 @@ export function WorkspacePage() {
                   <StatusBadge status={project.discrepancyStatus} label="Compare" />
                 </div>
                 <div className="meter-track" aria-hidden="true"><span style={{ width: `${(done / 4) * 100}%` }} /></div>
-                <Link className="button" to={`/dashboard/${project.id}`}>Open</Link>
+                <div className="row">
+                  <Link className="button" to={`/dashboard/${project.id}`}>Open</Link>
+                  {project.demonstration && <ResetDemoButton onReset={load} />}
+                </div>
               </div>
             </article>
           );

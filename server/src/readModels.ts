@@ -1,5 +1,5 @@
 import { all, one, type AppDatabase } from "./db.js";
-import { discrepancyPayload, requireProject, summariesPayload } from "./pipeline.js";
+import { DEMO_SOURCE_REF, discrepancyPayload, requireProject, summariesPayload } from "./pipeline.js";
 
 function num(value: unknown): number {
   const parsed = Number(value ?? 0);
@@ -43,61 +43,154 @@ export function dashboardPayload(db: AppDatabase, projectId?: string) {
      ORDER BY modules DESC, directory`,
     ...args,
   );
-  const events = all<{ at: string; label: string; detail: string | null }>(
+  const events = all<{ at: string; label: string; detail: string | null; actor: string | null }>(
     db,
-    `SELECT created_at AS at, stage AS label, detail
+    `SELECT created_at AS at, stage AS label, detail, NULL AS actor
      FROM ingestion_events
      WHERE ${clause}
      ORDER BY created_at DESC
      LIMIT 8`,
     ...args,
   );
-  const revisions = all<{ at: string; label: string; detail: string | null }>(
+  const revisions = all<{ at: string; label: string; detail: string | null; actor: string | null }>(
     db,
-    `SELECT r.created_at AS at, r.action AS label, m.name AS detail
+    `SELECT r.created_at AS at, r.action AS label, m.name AS detail, u.display_name AS actor
      FROM intent_revisions r
      JOIN intent_summaries s ON s.id = r.summary_id
      JOIN modules m ON m.id = s.module_id
+     LEFT JOIN users u ON u.id = r.reviewer_id
      WHERE ${projectId ? "s.project_id = ?" : "1 = 1"}
      ORDER BY r.created_at DESC
      LIMIT 8`,
     ...args,
   );
   const project = projectId
-    ? one<{ name: string; ingestion_status: string; analysis_status: string; summary_status: string; discrepancy_status: string }>(
+    ? one<{
+      name: string;
+      source_ref: string | null;
+      ingestion_status: string;
+      analysis_status: string;
+      summary_status: string;
+      discrepancy_status: string;
+      ingestion_error: string | null;
+      analysis_error: string | null;
+      summary_error: string | null;
+      discrepancy_error: string | null;
+      excluded_unreviewed: number;
+    }>(
       db,
-      "SELECT name, ingestion_status, analysis_status, summary_status, discrepancy_status FROM projects WHERE id = ?",
+      `SELECT name, source_ref, ingestion_status, analysis_status, summary_status, discrepancy_status,
+              ingestion_error, analysis_error, summary_error, discrepancy_error, excluded_unreviewed
+       FROM projects WHERE id = ?`,
       projectId,
     )
     : undefined;
-  const statuses = {
-    ingestion: project?.ingestion_status ?? "not_started",
-    analysis: project?.analysis_status ?? "not_started",
-    summary: project?.summary_status ?? "not_started",
-    discrepancy: project?.discrepancy_status ?? "not_started",
-  };
-  const complete = Object.values(statuses).filter((status) => status === "complete").length;
+  const fileRow = projectId
+    ? one<{ files: number; flagged: number; loc: number }>(
+      db,
+      `SELECT COUNT(*) AS files,
+              COALESCE(SUM(CASE WHEN status != 'parsed' THEN 1 ELSE 0 END), 0) AS flagged,
+              COALESCE(SUM(CASE WHEN status = 'parsed' THEN loc ELSE 0 END), 0) AS loc
+       FROM ingested_files WHERE project_id = ?`,
+      projectId,
+    )
+    : undefined;
+  const edgeRow = projectId
+    ? one<{ confirmed: number; unresolved: number }>(
+      db,
+      `SELECT COALESCE(SUM(CASE WHEN resolution = 'confirmed' THEN 1 ELSE 0 END), 0) AS confirmed,
+              COALESCE(SUM(CASE WHEN resolution = 'unresolved' THEN 1 ELSE 0 END), 0) AS unresolved
+       FROM dependency_edges WHERE project_id = ?`,
+      projectId,
+    )
+    : undefined;
+  const queued = projectId
+    ? num(one<{ n: number }>(db, "SELECT COUNT(*) AS n FROM intent_summaries WHERE project_id = ? AND queued_for_review = 1 AND status = 'inferred'", projectId)?.n)
+    : 0;
+  const topDiscrepancies = projectId
+    ? all<{ id: string; impact_rank: number; severity: string; description: string; module_name: string; module_id: string }>(
+      db,
+      `SELECT d.id, d.impact_rank, d.severity, d.description, m.name AS module_name, d.module_id
+       FROM discrepancies d JOIN modules m ON m.id = d.module_id
+       WHERE d.project_id = ?
+       ORDER BY d.impact_rank ASC
+       LIMIT 5`,
+      projectId,
+    )
+    : [];
+  const statuses = projectId
+    ? {
+      ingestion: project?.ingestion_status ?? "not_started",
+      analysis: project?.analysis_status ?? "not_started",
+      summary: project?.summary_status ?? "not_started",
+      discrepancy: project?.discrepancy_status ?? "not_started",
+    }
+    : null;
+  const complete = statuses ? Object.values(statuses).filter((status) => status === "complete").length : 0;
+  const validated = num(summaryRow?.validated);
+  const unreviewed = Math.max(0, num(summaryRow?.summaries) - validated);
+  const id = projectId ?? "";
+  const nextAction = !projectId
+    ? { label: "Open demo project", to: null, reason: "No project is selected." }
+    : statuses?.ingestion === "failed"
+      ? { label: "Retry ingestion", to: `/progress/${id}`, reason: project?.ingestion_error || "Ingestion failed." }
+      : statuses?.ingestion !== "complete"
+        ? { label: "Watch ingestion", to: `/progress/${id}`, reason: "Ingestion has not finished." }
+        : statuses?.analysis === "failed"
+          ? { label: "Open the dependency map", to: `/dependency-map/${id}`, reason: project?.analysis_error || "Dependency analysis failed." }
+          : statuses?.analysis !== "complete"
+            ? { label: "Map dependencies", to: `/dependency-map/${id}`, reason: "The dependency map has not been built." }
+            : statuses?.summary === "failed"
+              ? { label: "Open intent summaries", to: `/intent-summaries/${id}`, reason: project?.summary_error || "Intent summaries failed." }
+              : statuses?.summary !== "complete"
+                ? { label: "Summarize intent", to: `/intent-summaries/${id}`, reason: "Parsed modules have no intent summaries yet." }
+                : validated === 0
+                  ? { label: "Review intent", to: `/intent-review/${id}`, reason: "Discrepancy detection waits for a confirmed or corrected summary." }
+                  : statuses?.discrepancy === "failed" || statuses?.discrepancy === "blocked"
+                    ? { label: "Open discrepancies", to: `/discrepancies/${id}`, reason: project?.discrepancy_error || "Compare is blocked until intent is validated." }
+                    : statuses?.discrepancy !== "complete"
+                      ? { label: "Compare with validated intent", to: `/discrepancies/${id}`, reason: "Validated intent has not been compared with the code." }
+                      : { label: "Review discrepancies", to: `/discrepancies/${id}`, reason: "Compare is complete. Conflicts are ranked by stored impact." };
+  const scoped = Boolean(projectId);
   return {
     projectId: projectId ?? null,
     projectName: project?.name ?? null,
-    modulesParsed: num(moduleRow?.n),
-    intentSummaries: num(summaryRow?.summaries),
-    validatedByExperts: num(summaryRow?.validated),
-    atRisk: num(summaryRow?.at_risk),
-    discrepancies: num(discrepancyRow?.n),
+    demonstration: project?.source_ref === DEMO_SOURCE_REF,
+    modulesParsed: scoped ? num(moduleRow?.n) : 0,
+    intentSummaries: scoped ? num(summaryRow?.summaries) : 0,
+    validatedByExperts: scoped ? validated : 0,
+    atRisk: scoped ? num(summaryRow?.at_risk) : 0,
+    discrepancies: scoped ? num(discrepancyRow?.n) : 0,
     confidence: {
-      low: num(summaryRow?.low),
-      medium: num(summaryRow?.medium),
-      high: num(summaryRow?.high),
+      low: scoped ? num(summaryRow?.low) : 0,
+      medium: scoped ? num(summaryRow?.medium) : 0,
+      high: scoped ? num(summaryRow?.high) : 0,
     },
-    clusters: clusters.map((cluster) => ({
+    clusters: scoped ? clusters.map((cluster) => ({
       directory: cluster.directory,
       modules: num(cluster.modules),
       low: num(cluster.low),
-    })),
-    activity: [...events, ...revisions].sort((a, b) => b.at.localeCompare(a.at)).slice(0, 10),
+    })) : [],
+    activity: scoped ? [...events, ...revisions].sort((a, b) => b.at.localeCompare(a.at)).slice(0, 10) : [],
     stageProgress: projectId ? complete / 4 : null,
-    statuses: projectId ? statuses : null,
+    statuses,
+    fileCount: num(fileRow?.files),
+    flaggedFiles: num(fileRow?.flagged),
+    totalLoc: num(fileRow?.loc),
+    edgesConfirmed: num(edgeRow?.confirmed),
+    edgesUnresolved: num(edgeRow?.unresolved),
+    reviewQueued: queued,
+    unreviewed,
+    excludedUnreviewed: num(project?.excluded_unreviewed),
+    topDiscrepancies: topDiscrepancies.map((item) => ({
+      id: item.id,
+      impactRank: num(item.impact_rank),
+      severity: item.severity,
+      description: item.description,
+      moduleName: item.module_name,
+      moduleId: item.module_id,
+    })),
+    nextAction,
   };
 }
 
