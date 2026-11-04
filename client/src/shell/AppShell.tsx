@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import {
   BadgeCheck, FileSearch, FolderKanban, GitCompare, LayoutDashboard, ListChecks,
-  LogOut, Menu, PanelLeft, ScrollText, Settings, Share2, Shield, Upload, Workflow,
+  LogOut, Menu, PanelLeft, Scale, ScrollText, Settings, Share2, Shield, Upload, Workflow,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate, useParams } from "react-router-dom";
@@ -26,18 +26,20 @@ const GROUPS = [
   ]},
   { label: "Intent", items: [
     { to: "/intent-summaries", label: "Intent summaries", icon: FileSearch, tag: "Live" },
+    { to: "/rules", label: "Rules", icon: Scale, tag: "Preview" },
   ]},
   { label: "Review", items: [
     { to: "/intent-review", label: "Expert review", icon: BadgeCheck, tag: "Live" },
     { to: "/discrepancies", label: "Discrepancies", icon: GitCompare, tag: "Live" },
   ]},
   { label: "Modernize", items: [
-    { to: "/rule-check", label: "Rule check", icon: Shield, tag: "Live" },
-    { to: "/architecture", label: "Architecture draft", icon: Workflow, tag: "Preview" },
-    { to: "/behavior", label: "Behavior checks", icon: ListChecks, tag: "Preview" },
+    { to: "/architecture", label: "Architecture", icon: Workflow, tag: "Preview" },
+    { to: "/rule-check", label: "Rule preservation", icon: Shield, tag: "Preview" },
+    { to: "/behavior", label: "Behavior testing", icon: ListChecks, tag: "Preview" },
   ]},
   { label: "Output", items: [
-    { to: "/traceability", label: "Traceability", icon: ScrollText, tag: "Live" },
+    { to: "/traceability", label: "Compliance and traceability", icon: ScrollText, tag: "Live" },
+    { to: "/leadership", label: "Leadership view", icon: LayoutDashboard, tag: "Preview" },
     { to: "/reports", label: "Reports", icon: FileSearch, tag: "Live" },
   ]},
   { label: "Settings", items: [
@@ -52,12 +54,14 @@ const NAMES: Record<string, string> = {
   progress: "Progress",
   "dependency-map": "Dependency map",
   "intent-summaries": "Intent summaries",
+  rules: "Rules",
   "intent-review": "Expert review",
   discrepancies: "Discrepancies",
-  "rule-check": "Rule check",
-  architecture: "Architecture draft",
-  behavior: "Behavior checks",
-  traceability: "Traceability",
+  "rule-check": "Rule preservation",
+  architecture: "Architecture",
+  behavior: "Behavior testing",
+  traceability: "Compliance and traceability",
+  leadership: "Leadership view",
   reports: "Reports",
   settings: "Settings",
 };
@@ -198,7 +202,7 @@ export function AppShell() {
           <NotificationBell notices={notices} />
           <p className="identity-chip chrome-control">Signed in as {user?.displayName} · {user?.identityLabel}</p>
         </header>
-        <main id="content" className="content">
+        <main id="content" className={`content${["architecture", "rule-check", "behavior", "traceability", "leadership", "rules"].includes(section) ? " wide" : ""}`}>
           <AnimatePresence mode="wait">
             <motion.div key={location.pathname} initial={{ opacity: 0, y: motionTokens.distance }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: motionTokens.duration.slow, ease: motionTokens.ease }}>
               <Outlet />
