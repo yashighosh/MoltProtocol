@@ -40,7 +40,7 @@ describe("AppShell", () => {
     expect(localStorage.getItem("moltprotocol-sidebar")).toBe("1");
     expect(document.querySelector(".shell")).toHaveClass("collapsed");
     expect(screen.getByRole("button", { name: "Expand sidebar" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Architecture draft/ })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Architecture/ })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Settings/ })).toBeInTheDocument();
   });
 });
