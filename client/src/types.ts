@@ -4,6 +4,8 @@ export type SessionUser = {
   displayName: string;
   isDemo: boolean;
   identityLabel: string;
+  /** Present once membership roles are stored. Viewer accounts land on the leadership view. */
+  role?: string;
 };
 
 export type ProjectFile = {

@@ -1,81 +1,99 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
-import { api } from "../api";
+import { useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { CoverageBar } from "../components/CoverageBar";
+import { DataTable, type Column } from "../components/DataTable";
 import { EmptyState } from "../components/EmptyState";
 import { ErrorState } from "../components/ErrorState";
 import { PageHeader } from "../components/PageHeader";
+import { PendingData } from "../components/PendingData";
 import { Skeleton } from "../components/Skeleton";
 import { StatusBadge } from "../components/StatusBadge";
-import type { Discrepancy, IntentSummary } from "../types";
+import type { CoverageRow } from "../connection/contracts";
+import { getRuleCheck, listRuleChecks } from "../connection/modernize";
+import { useLoad } from "../hooks/useLoad";
+
+const ORDER = ["dropped", "distorted", "mentioned_only", "retired_by_design", "not_in_scope", "preserved"];
+
+function tone(status: string) {
+  if (status === "preserved") return "preserved";
+  if (status === "dropped") return "error";
+  if (status === "distorted" || status === "mentioned_only") return "attention";
+  return "neutral";
+}
 
 export function RuleCheckPage() {
-  const { projectId } = useParams();
-  const [summaries, setSummaries] = useState<IntentSummary[] | null>(null);
-  const [items, setItems] = useState<Discrepancy[]>([]);
-  const [status, setStatus] = useState("");
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    if (!projectId) return;
-    api<{ summaries: IntentSummary[] }>(`/api/v1/projects/${projectId}/summaries`).then((result) => setSummaries(result.summaries)).catch((reason: Error) => setError(reason.message));
-    api<{ items: Discrepancy[]; discrepancyStatus: string }>(`/api/v1/projects/${projectId}/discrepancies`).then((result) => {
-      setItems(result.items);
-      setStatus(result.discrepancyStatus);
-    }).catch((reason: Error) => setError(reason.message));
-  }, [projectId]);
-
-  const rows = useMemo(() => {
-    const flagged = new Set(items.map((item) => item.moduleId));
-    return (summaries ?? []).map((summary) => {
-      const validated = summary.status === "confirmed" || summary.status === "corrected";
-      const state = !validated ? "Excluded" : status !== "complete" ? "Not compared" : flagged.has(summary.moduleId) ? "At risk" : "Preserved";
-      return { summary, state };
-    });
-  }, [summaries, items, status]);
+  const { projectId, runId } = useParams();
+  const navigate = useNavigate();
+  const checks = useLoad(() => listRuleChecks(projectId!), [projectId]);
+  const activeId = runId ?? (checks.state.kind === "ready" ? checks.state.data.items[0]?.id : undefined);
+  const check = useLoad(activeId ? () => getRuleCheck(projectId!, activeId) : null, [projectId, activeId]);
+  const [selected, setSelected] = useState<string | null>(null);
 
   if (!projectId) return <EmptyState title="Open a project first"><Link to="/workspace">Open projects</Link></EmptyState>;
-  const counts = {
-    Preserved: rows.filter((row) => row.state === "Preserved").length,
-    "At risk": rows.filter((row) => row.state === "At risk").length,
-    Excluded: rows.filter((row) => row.state === "Excluded").length,
-    "Not compared": rows.filter((row) => row.state === "Not compared").length,
-  };
-  const total = counts.Preserved + counts["At risk"] + counts.Excluded;
-  const stops = [
-    ["var(--success-ink)", counts.Preserved],
-    ["var(--danger-ink)", counts["At risk"]],
-    ["var(--neutral-ink)", counts.Excluded],
-  ] as const;
-  let cursor = 0;
-  const gradient = total === 0 ? "var(--bg-sunken)" : `conic-gradient(${stops.map(([color, count]) => {
-    const start = cursor;
-    cursor += (count / total) * 100;
-    return `${color} ${start}% ${cursor}%`;
-  }).join(", ")})`;
+
+  const data = check.state.kind === "ready" ? check.state.data : null;
+  const rows = [...(data?.rows ?? [])].sort((a, b) => ORDER.indexOf(a.status) - ORDER.indexOf(b.status));
+  const current = rows.find((row) => row.id === selected) ?? null;
+  const columns: Column<CoverageRow>[] = [
+    { id: "rule", header: "Rule", render: (row) => <span className="mono">{row.ruleKey}</span> },
+    { id: "statement", header: "Statement", render: (row) => row.statement },
+    { id: "status", header: "Coverage", render: (row) => <StatusBadge status={tone(row.status)} label={row.status.replaceAll("_", " ")} /> },
+    { id: "component", header: "Component", render: (row) => row.componentName ?? "None" },
+  ];
 
   return (
     <div className="stack">
-      <PageHeader eyebrow="Live" title="Rule check" lede="Preserved means a validated intent has no stored discrepancy. At risk means a discrepancy is attached. Unreviewed summaries are excluded. This is not a proof the rule survived a rewrite." />
-      {error && <ErrorState message={error} />}
-      {summaries === null && !error && <Skeleton />}
-      {status && status !== "complete" && <p className="callout" role="status">Detection status is {status.replaceAll("_", " ")}. Validated summaries stay marked not compared until detection completes.</p>}
-      {summaries?.length === 0 && <EmptyState title="No intents to check">Generate summaries before grouping them.</EmptyState>}
-      {summaries && summaries.length > 0 && (
-        <div className="grid-2">
-          <article className="card" style={{ display: "grid", placeItems: "center" }}>
-            <div className="donut" style={{ background: gradient }} role="img" aria-label={`${counts.Preserved} preserved, ${counts["At risk"]} at risk, ${counts.Excluded} excluded`}>
-              <span>{total} intents</span>
-            </div>
-          </article>
-          <ul className="card stack">
-            {rows.map((row) => (
-              <li key={row.summary.id} className="row" style={{ justifyContent: "space-between" }}>
-                <span className="path">{row.summary.moduleName}</span>
-                <StatusBadge status={row.state === "Preserved" ? "preserved" : row.state === "At risk" ? "error" : row.state === "Excluded" ? "neutral" : "attention"} label={row.state} />
-              </li>
-            ))}
-          </ul>
-        </div>
+      <PageHeader
+        eyebrow="Preview"
+        title="Rule preservation"
+        lede="Preserved means a component explicitly carries this rule and an architect affirmed it. A rule only mentioned in a description is not counted as preserved. This is a static comparison. It does not prove runtime behavior."
+      />
+      {checks.state.kind === "loading" && <Skeleton lines={5} />}
+      {checks.state.kind === "error" && <ErrorState message={checks.state.message} onRetry={checks.reload} />}
+      {checks.state.kind === "disconnected" && <PendingData title="No rule check is stored yet" />}
+      {checks.state.kind === "ready" && checks.state.data.items.length === 0 && (
+        <EmptyState title="No rule check yet">Run a check after a target architecture and accepted rules are stored.</EmptyState>
+      )}
+      {checks.state.kind === "ready" && checks.state.data.items.length > 0 && (
+        <label>
+          Architecture version
+          <select value={activeId ?? ""} onChange={(event) => navigate(`/rule-check/${projectId}/${event.target.value}`)}>
+            {checks.state.data.items.map((item) => <option key={item.id} value={item.id}>{item.label}{item.stale ? " (stale)" : ""}</option>)}
+          </select>
+        </label>
+      )}
+      {activeId && check.state.kind === "loading" && <Skeleton />}
+      {activeId && check.state.kind === "disconnected" && <PendingData title="This check is not available yet" />}
+      {activeId && check.state.kind === "error" && <ErrorState message={check.state.message} onRetry={check.reload} />}
+      {data && (
+        <>
+          {data.stale && <p className="callout warning" role="status">This check is stale. {data.staleReason ?? "Run the check again after the design or the rules change."}</p>}
+          <CoverageBar counts={data.counts} />
+          <div className="ledger-split">
+            <DataTable caption="Rule coverage" columns={columns} rows={rows} selectedId={current?.id} onSelect={setSelected} empty="No rows in this check." />
+            <aside className="card stack" aria-live="polite">
+              {!current && <p>Select a rule to compare the statement with the design.</p>}
+              {current && (
+                <div className="compare-pane">
+                  <section>
+                    <h2>Rule</h2>
+                    <p className="mono">{current.ruleKey}</p>
+                    <p>{current.statement}</p>
+                    <p className="muted">{current.sourcePath ?? "No source path stored."}</p>
+                  </section>
+                  <section>
+                    <h2>Design</h2>
+                    <p>{current.componentName ?? "No covering component"}</p>
+                    <p>{current.responsibility ?? "No responsibility is linked."}</p>
+                    <p>{current.reason ?? "No extra reason stored."}</p>
+                    {current.componentKey && <Link to={`/architecture/${projectId}`}>Open component in architecture</Link>}
+                    <Link to={`/traceability/${projectId}/${current.ruleId}`}>Record migration decision</Link>
+                  </section>
+                </div>
+              )}
+            </aside>
+          </div>
+        </>
       )}
     </div>
   );

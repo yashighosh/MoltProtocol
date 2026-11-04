@@ -73,7 +73,7 @@ export function LoginPage() {
     try {
       const result = await api<{ user: SessionUser }>("/api/v1/auth/login", { method: "POST", body: JSON.stringify({ email, password }) });
       setUser(result.user);
-      navigate("/dashboard");
+      navigate(result.user.role === "viewer" ? "/leadership" : "/dashboard");
     } catch (reason) {
       setError(reason instanceof ApiError ? reason.message : "Sign-in failed.");
     } finally {

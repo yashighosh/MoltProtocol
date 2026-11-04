@@ -121,4 +121,13 @@
   --header-height: 68px;
   --content-max: 1280px;
   --page-max: 1240px;
+
+  /* Added for modernization workspaces. Existing token values are unchanged. */
+  --sage-ink: #4b5f3d;
+  --sage-wash: #e3e9d9;
+  --teal-ink: #1f5c60;
+  --teal-wash: #d8e8e8;
+  --taupe-ink: #6b5d4c;
+  --taupe-wash: #e6ddd0;
+  --espresso: #2b1f17;
 }
