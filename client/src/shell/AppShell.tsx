@@ -189,7 +189,14 @@ export function AppShell() {
           </select>
           <button type="button" className="secondary search-btn" onClick={() => setPalette(true)}>Search</button>
           <NotificationBell notices={notices} />
-          <p className="identity-chip">Signed in as {user?.displayName} · {user?.identityLabel}</p>
+          {user && (
+            <div className="identity-chip" title={user.email}>
+              <span className="identity-avatar" aria-hidden="true">
+                {user.displayName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
+              </span>
+              <span className="identity-name">{user.displayName}</span>
+            </div>
+          )}
         </header>
         <main id="content" className="content">
           <AnimatePresence mode="wait">
