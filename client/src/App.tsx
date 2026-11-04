@@ -11,9 +11,11 @@ import { IntentPage } from "./pages/IntentPage";
 import { LandingPage } from "./pages/LandingPage";
 import { LoginPage } from "./pages/LoginPage";
 import { ProgressPage } from "./pages/ProgressPage";
+import { LeadershipPage } from "./pages/LeadershipPage";
 import { ReportsPage } from "./pages/ReportsPage";
 import { ReviewPage } from "./pages/ReviewPage";
 import { RuleCheckPage } from "./pages/RuleCheckPage";
+import { RulesPage } from "./pages/RulesPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { TraceabilityPage } from "./pages/TraceabilityPage";
 import { WorkspacePage } from "./pages/WorkspacePage";
@@ -38,12 +40,14 @@ export function App() {
         <Route path="/progress/:projectId?" element={<ProgressPage />} />
         <Route path="/dependency-map/:projectId?" element={<DependencyPage />} />
         <Route path="/intent-summaries/:projectId?" element={<IntentPage />} />
+        <Route path="/rules/:projectId?" element={<RulesPage />} />
         <Route path="/intent-review/:projectId?" element={<ReviewPage />} />
         <Route path="/discrepancies/:projectId?" element={<DiscrepancyPage />} />
-        <Route path="/rule-check/:projectId?" element={<RuleCheckPage />} />
-        <Route path="/architecture/:projectId?" element={<ArchitecturePage />} />
-        <Route path="/behavior/:projectId?" element={<BehaviorPage />} />
-        <Route path="/traceability/:projectId?" element={<TraceabilityPage />} />
+        <Route path="/rule-check/:projectId?/:runId?" element={<RuleCheckPage />} />
+        <Route path="/architecture/:projectId?/:proposalId?" element={<ArchitecturePage />} />
+        <Route path="/behavior/:projectId?/:suiteId?" element={<BehaviorPage />} />
+        <Route path="/traceability/:projectId?/:ruleId?" element={<TraceabilityPage />} />
+        <Route path="/leadership/:projectId?" element={<LeadershipPage />} />
         <Route path="/reports/:projectId?" element={<ReportsPage />} />
         <Route path="/settings/:projectId?" element={<SettingsPage />} />
       </Route>
