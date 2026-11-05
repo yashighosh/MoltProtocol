@@ -100,24 +100,31 @@ export function DependencyPage() {
       {graph?.message && <p className="callout" role="status">{graph.message}</p>}
       {graph && graph.nodes.length === 0 && project?.analysisStatus === "complete" && <EmptyState title="No modules to draw">Parsing did not produce modules, so there are no edges to invent.</EmptyState>}
       {graph && graph.nodes.length > 0 && (
-        <div className="split map">
+        <div className="graph-workspace">
           <GraphCanvas projectId={projectId} nodes={graph.nodes} edges={graph.edges} selectedId={selected} onSelect={(id) => setParams({ module: id })} />
-          <aside className="card stack">
+          <aside className="card stack module-inspector">
             <h2>Selected module</h2>
             {!detail && <p>Select a node. Callers, callees, and export declarations appear here.</p>}
             {detail && (
               <>
                 <p className="path">{detail.module.name}</p>
+                <p className="muted">{detail.module.directory || "No directory"} · {detail.module.kind}</p>
                 <StatusBadge status={detail.module.resolution} label={detail.module.kind === "file" ? "Parsed module" : detail.module.kind} />
-                <h2>Callers</h2>
-                {detail.callers.length === 0 && <p>No callers inside this ingest.</p>}
-                <ul>{detail.callers.map((item, index) => <li key={index}>{item.module?.name} · {item.relationship} · {item.resolution}</li>)}</ul>
-                <h2>Callees</h2>
-                {detail.callees.length === 0 && <p>No callees inside this ingest.</p>}
-                <ul>{detail.callees.map((item, index) => <li key={index}>{item.module?.name} · {item.relationship} · {item.resolution}</li>)}</ul>
-                <h2>Exports</h2>
-                {exportsFound.length === 0 && <p>No export declarations in this file.</p>}
-                <ul>{exportsFound.map((name) => <li key={name} className="mono">{name}</li>)}</ul>
+                <section className="inspector-section">
+                  <h2>Callers</h2>
+                  {detail.callers.length === 0 && <p>No callers inside this ingest.</p>}
+                  <ul>{detail.callers.map((item, index) => <li key={index}>{item.module?.name ?? "Missing module"} · {item.relationship} · {item.resolution}</li>)}</ul>
+                </section>
+                <section className="inspector-section">
+                  <h2>Callees</h2>
+                  {detail.callees.length === 0 && <p>No callees inside this ingest.</p>}
+                  <ul>{detail.callees.map((item, index) => <li key={index}>{item.module?.name ?? "Missing module"} · {item.relationship} · {item.resolution}</li>)}</ul>
+                </section>
+                <section className="inspector-section">
+                  <h2>Exports</h2>
+                  {exportsFound.length === 0 && <p>No export declarations in this file.</p>}
+                  <ul>{exportsFound.map((name) => <li key={name} className="mono">{name}</li>)}</ul>
+                </section>
               </>
             )}
           </aside>
