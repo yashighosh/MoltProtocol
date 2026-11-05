@@ -91,13 +91,16 @@ export function ArchitecturePage() {
   return (
     <div className="stack">
       <PageHeader
-        eyebrow="Preview"
+        eyebrow="Demonstration"
         title="Architecture"
         lede="A target architecture grounded in validated intent. Each component should say which legacy modules map into it and why. Static structure is not proof of runtime behavior."
         actions={<button type="button" onClick={() => void generate()}>Generate from validated intent</button>}
       />
       {projectId && <JobStatus projectId={projectId} jobId={jobId} />}
       {actionError && <ErrorState message={actionError} />}
+      {list.state.kind === "ready" && list.state.data.items.some((item) => item.id === "billing-demo-proposal") && (
+        <p className="callout" role="status">Demonstration for Legacy Billing. The proposal follows this ingest: invoice, tax, discount, payment, and the missing rate file. It is not a generated redesign.</p>
+      )}
       {list.state.kind === "loading" && <Skeleton lines={4} />}
       {list.state.kind === "error" && <ErrorState message={list.state.message} onRetry={list.reload} />}
       {list.state.kind === "disconnected" && <PendingData title="No architecture records yet" />}
