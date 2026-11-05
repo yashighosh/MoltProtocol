@@ -16,17 +16,45 @@ const STAGES = [
   ["discrepancy", "Compare"],
 ] as const;
 
-function reviewStatus(data: DashboardData): string {
-  if (!data.statuses || data.statuses.summary !== "complete") return "not_started";
-  if (data.validatedByExperts === 0) return "not_started";
-  if (data.unreviewed > 0) return "queued";
-  return "confirmed";
+export function reviewStage(data: Pick<DashboardData, "statuses" | "validatedByExperts" | "unreviewed" | "reviewQueued">): { status: string; detail: string } {
+  if (!data.statuses || data.statuses.summary !== "complete") {
+    return { status: "not_started", detail: "Summaries have not been generated." };
+  }
+  if (data.reviewQueued > 0) {
+    return { status: "queued", detail: `${data.reviewQueued} waiting in expert review.` };
+  }
+  if (data.validatedByExperts > 0 && data.unreviewed > 0) {
+    return { status: "attention", detail: `${data.validatedByExperts} validated. ${data.unreviewed} still inferred and not queued.` };
+  }
+  if (data.validatedByExperts > 0) return { status: "confirmed", detail: `${data.validatedByExperts} validated.` };
+  return { status: "not_started", detail: "No summary has been confirmed." };
 }
 
 function stageStatus(data: DashboardData, key: (typeof STAGES)[number][0]): string {
   if (!data.statuses) return "not_started";
-  if (key === "review") return reviewStatus(data);
+  if (key === "review") return reviewStage(data).status;
   return data.statuses[key];
+}
+
+function stageDetail(data: DashboardData, key: (typeof STAGES)[number][0]): string {
+  if (key === "review") return reviewStage(data).detail;
+  if (key === "discrepancy" && data.statuses?.discrepancy === "blocked" && data.validatedByExperts > 0) {
+    return "The last compare ran before this validation. Run discrepancy detection again.";
+  }
+  const status = data.statuses?.[key] ?? "not_started";
+  return status.replaceAll("_", " ");
+}
+
+function compareReason(data: DashboardData): string {
+  if (data.statuses?.discrepancy === "blocked" && data.validatedByExperts > 0) {
+    return "Compare is still blocked from the earlier run, which found no confirmed summary. Validated summaries exist now. Run discrepancy detection again.";
+  }
+  if (data.statuses?.discrepancy === "complete") return "No discrepancies were stored.";
+  return data.nextAction.reason;
+}
+
+function stamp(value: string) {
+  return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(value));
 }
 
 export function DashboardPage() {
@@ -67,6 +95,17 @@ export function DashboardPage() {
     ["Discrepancies", data.discrepancies],
   ] as const;
   const confidenceTotal = data.confidence.low + data.confidence.medium + data.confidence.high;
+  const activity = data.activity.reduce<DashboardData["activity"]>((groups, item) => {
+    const previous = groups[groups.length - 1];
+    const sameSecond = previous && previous.label === item.label && previous.at.slice(0, 19) === item.at.slice(0, 19);
+    if (previous && sameSecond) {
+      const count = Number(previous.detail?.match(/^(\d+) /)?.[1] ?? 1) + 1;
+      previous.detail = `${count} ${item.label.replaceAll("_", " ")}`;
+      return groups;
+    }
+    groups.push({ ...item });
+    return groups;
+  }, []).slice(0, 8);
 
   return (
     <div className="board">
@@ -88,7 +127,7 @@ export function DashboardPage() {
             {metrics.map(([label, value]) => (
               <article key={label}>
                 <span>{label}</span>
-                <strong><CountUp to={value} /></strong>
+                <strong className={((label === "Flagged files" || label === "Unresolved edges" || label === "Discrepancies") && value > 0) ? "warn" : undefined}><CountUp to={value} /></strong>
               </article>
             ))}
           </div>
@@ -105,6 +144,7 @@ export function DashboardPage() {
               <span className="flow-step">{String(index + 1).padStart(2, "0")}</span>
               <strong>{label}</strong>
               <StatusBadge status={stageStatus(data, key)} />
+              <span className="muted">{stageDetail(data, key)}</span>
             </li>
           ))}
         </ol>
@@ -120,11 +160,14 @@ export function DashboardPage() {
             {confidenceTotal === 0 ? (
               <p className="muted">No confidence counts are stored yet.</p>
             ) : (
-              <div className="meter-bar" role="img" aria-label={`${data.confidence.high} high, ${data.confidence.medium} medium, ${data.confidence.low} low`}>
-                {data.confidence.high > 0 && <span className="meter-high" style={{ flexGrow: data.confidence.high }} />}
-                {data.confidence.medium > 0 && <span className="meter-med" style={{ flexGrow: data.confidence.medium }} />}
-                {data.confidence.low > 0 && <span className="meter-low" style={{ flexGrow: data.confidence.low }} />}
-              </div>
+              <>
+                <div className="meter-bar" role="img" aria-label={`${data.confidence.high} high, ${data.confidence.medium} medium, ${data.confidence.low} low`}>
+                  {data.confidence.high > 0 && <span className="meter-high" style={{ flexGrow: data.confidence.high }} />}
+                  {data.confidence.medium > 0 && <span className="meter-med" style={{ flexGrow: data.confidence.medium }} />}
+                  {data.confidence.low > 0 && <span className="meter-low" style={{ flexGrow: data.confidence.low }} />}
+                </div>
+                <p className="muted">Confidence bands, not validation state. High {data.confidence.high} ({Math.round((data.confidence.high / confidenceTotal) * 100)}%). Medium {data.confidence.medium} ({Math.round((data.confidence.medium / confidenceTotal) * 100)}%). Low {data.confidence.low} ({Math.round((data.confidence.low / confidenceTotal) * 100)}%).</p>
+              </>
             )}
             <p className="muted">{data.reviewQueued} queued. {data.validatedByExperts} validated. {data.unreviewed} still inferred. {data.excludedUnreviewed} excluded from compare.</p>
           </section>
@@ -135,7 +178,7 @@ export function DashboardPage() {
                 <p className="board-kicker">Discrepancies</p>
                 <Link to={`/discrepancies/${data.projectId}`}>Open the list</Link>
               </div>
-              {data.topDiscrepancies.length === 0 && <p className="muted">{data.statuses?.discrepancy === "complete" ? "No discrepancies were stored." : data.nextAction.reason}</p>}
+              {data.topDiscrepancies.length === 0 && <p className="muted">{compareReason(data)} {data.validatedByExperts === 0 && <Link to={`/intent-review/${data.projectId}`}>Open expert review</Link>}</p>}
               <ol className="event-list">
                 {data.topDiscrepancies.map((item) => (
                   <li key={item.id}>
@@ -150,11 +193,11 @@ export function DashboardPage() {
             </section>
             <section className="board-panel">
               <p className="board-kicker">Activity</p>
-              {data.activity.length === 0 && <p className="muted">No ingestion events or intent revisions are stored yet.</p>}
+              {activity.length === 0 && <p className="muted">No ingestion events or intent revisions are stored yet.</p>}
               <ol className="event-list">
-                {data.activity.map((item) => (
+                {activity.map((item) => (
                   <li key={`${item.at}-${item.label}-${item.detail}`}>
-                    <span className="mono">{new Date(item.at).toLocaleString()}</span>
+                    <span className="mono">{stamp(item.at)}</span>
                     <p>{item.label.replaceAll("_", " ")}{item.detail ? ` · ${item.detail}` : ""}{item.actor ? ` · ${item.actor}` : ""}</p>
                   </li>
                 ))}
