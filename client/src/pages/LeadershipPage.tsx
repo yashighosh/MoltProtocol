@@ -57,10 +57,13 @@ export function LeadershipPage() {
   return (
     <div className="stack">
       <PageHeader
-        eyebrow="Preview"
+        eyebrow="Demonstration"
         title="Leadership view"
         lede="Verified means an expert confirmed the intent and the source has not drifted. Unexamined means that confirmation is still missing. Risk is shown only when enough recorded factors exist."
       />
+      {overview.state.kind === "ready" && data?.behaviorLine?.includes("recorded comparison") && (
+        <p className="callout" role="status">Demonstration for Legacy Billing. Verified and unexamined counts come from this project's stored intent. The rule and behavior lines are the recorded walkthrough.</p>
+      )}
       {overview.state.kind === "loading" && <Skeleton lines={4} />}
       {overview.state.kind === "error" && <ErrorState message={overview.state.message} onRetry={overview.reload} />}
       {overview.state.kind === "disconnected" && <PendingData title="Leadership figures are not assessed yet" />}
