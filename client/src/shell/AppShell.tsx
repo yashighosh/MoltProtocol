@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import {
   BadgeCheck, FileSearch, FolderKanban, GitCompare, LayoutDashboard, ListChecks,
-  LogOut, Menu, PanelLeft, Scale, ScrollText, Settings, Share2, Shield, Upload, Workflow,
+  LogOut, Menu, Moon, PanelLeft, Scale, ScrollText, Search, Settings, Share2, Shield, Sun, Upload, Workflow,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate, useParams } from "react-router-dom";
@@ -83,6 +83,12 @@ export function AppShell() {
   const [palette, setPalette] = useState(false);
   const [notices, setNotices] = useState<Notice[]>([]);
   const [welcome, setWelcome] = useState(localStorage.getItem("moltprotocol-welcome-seen") !== "1");
+  const [theme, setTheme] = useState(localStorage.getItem("moltprotocol-theme") === "dark" ? "dark" : "light");
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem("moltprotocol-theme", theme);
+  }, [theme]);
 
   useEffect(() => {
     api<{ projects: Project[] }>("/api/v1/projects").then((result) => setProjects(result.projects)).catch(() => setProjects([]));
@@ -154,7 +160,7 @@ export function AppShell() {
     <div className={`shell${collapsed ? " collapsed" : ""}`}>
       <a className="skip-link" href="#content">Skip to content</a>
       <aside className={`sidebar on-dark${menuOpen ? " open" : ""}`}>
-        <Logo compact={collapsed} inverse />
+        <Logo compact={collapsed} inverse size={26} />
         <nav aria-label="Workbench">
           {GROUPS.map((group) => (
             <div className="nav-group" key={group.label}>
@@ -189,18 +195,39 @@ export function AppShell() {
           <div className="grow stack" style={{ gap: 2 }}>
             <Breadcrumbs items={crumbs} />
           </div>
-          <label className="visually-hidden" htmlFor="project-switch">Project</label>
-          <select id="project-switch" className="chrome-control" aria-label="Project" value={projectId ?? ""} onChange={(event) => {
-            const next = event.target.value;
-            const base = `/${section}`;
-            navigate(next ? hrefFor(base, next) : base);
-          }}>
-            <option value="">No project selected</option>
-            {projects.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-          </select>
-          <button type="button" className="secondary search-btn chrome-control" onClick={() => setPalette(true)}>Search</button>
-          <NotificationBell notices={notices} />
-          <p className="identity-chip chrome-control">Signed in as {user?.displayName} · {user?.identityLabel}</p>
+          <div className="topbar-actions">
+            <label className="visually-hidden" htmlFor="project-switch">Project</label>
+            <select id="project-switch" className="chrome-control" aria-label="Project" value={projectId ?? ""} onChange={(event) => {
+              const next = event.target.value;
+              const base = `/${section}`;
+              navigate(next ? hrefFor(base, next) : base);
+            }}>
+              <option value="">No project selected</option>
+              {projects.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+            </select>
+            <div className="tool-tray">
+              <button type="button" className="icon-btn chrome-control" aria-label="Search" onClick={() => setPalette(true)}>
+                <Search size={18} strokeWidth={2.25} />
+              </button>
+              <NotificationBell notices={notices} />
+              <button
+                type="button"
+                className="icon-btn chrome-control"
+                aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+                onClick={() => setTheme((value) => value === "dark" ? "light" : "dark")}
+              >
+                {theme === "dark" ? <Sun size={18} strokeWidth={2.25} /> : <Moon size={18} strokeWidth={2.25} />}
+              </button>
+            </div>
+            <button
+              type="button"
+              className="avatar chrome-control"
+              aria-label={`Signed in as ${user?.displayName ?? "user"}, ${user?.identityLabel ?? "signed-in identity"}`}
+              title={`${user?.displayName ?? "Signed in"} · ${user?.identityLabel ?? ""}`}
+            >
+              {(user?.displayName?.trim().split(/\s+/)[0]?.[0] ?? "?").toUpperCase()}
+            </button>
+          </div>
         </header>
         <main id="content" className={`content${["architecture", "rule-check", "behavior", "traceability", "leadership", "rules"].includes(section) ? " wide" : ""}`}>
           <AnimatePresence mode="wait">

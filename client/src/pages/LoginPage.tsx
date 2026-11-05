@@ -35,28 +35,25 @@ export function LoginForm({
 
   return (
     <form className="login-form" onSubmit={submit}>
-      <h1>Sign in</h1>
-      <p className="callout">Demo sign-in. These accounts are persisted local identities for the workbench. They are not an enterprise directory, and the demo label stays visible after you enter.</p>
-      <div className="row">
-        {DEMOS.map((person) => (
-          <button key={person.email} type="button" className="secondary" onClick={() => { setEmail(person.email); setPassword("demo-pass"); setLocalError(""); }}>
-            Fill {person.name}
-          </button>
-        ))}
-      </div>
       <label>
         Email
-        <input name="email" type="email" autoComplete="username" value={email} onChange={(event) => setEmail(event.target.value)} />
+        <input name="email" type="email" autoComplete="username" placeholder="Email" value={email} onChange={(event) => setEmail(event.target.value)} />
       </label>
       <label>
         Password
-        <input name="password" type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} />
+        <input name="password" type="password" autoComplete="current-password" placeholder="Password" value={password} onChange={(event) => setPassword(event.target.value)} />
       </label>
       {(localError || error) && <p className="field-error" role="alert">{localError || error}</p>}
       <button type="submit" disabled={busy}>{busy ? "Checking identity…" : "Sign in"}</button>
-      <p className="mono">Demo identity · ada.okonkwo@moltprotocol.demo · password demo-pass</p>
-      <p className="mono">Demo identity · ravi.shah@moltprotocol.demo · password demo-pass</p>
-      <Link to="/">Back to the introduction</Link>
+      <p className="login-note">Demo sign-in. These accounts are local identities for the workbench, and the demo label stays visible after you enter.</p>
+      <div className="login-assist">
+        {DEMOS.map((person) => (
+          <button key={person.email} type="button" className="text-btn" onClick={() => { setEmail(person.email); setPassword("demo-pass"); setLocalError(""); }}>
+            Use {person.name}
+          </button>
+        ))}
+      </div>
+      <p className="login-credentials">ada.okonkwo@moltprotocol.demo · ravi.shah@moltprotocol.demo · password demo-pass</p>
     </form>
   );
 }
@@ -82,16 +79,17 @@ export function LoginPage() {
   }
 
   return (
-    <div className="login-page">
-      <section className="login-copy">
-        <div className="hero-mesh" aria-hidden="true" />
-        <Logo inverse />
+    <div className="login-stage">
+      <div className="hero-mesh" aria-hidden="true" />
+      <header className="login-top">
+        <Logo inverse size={32} />
+        <Link to="/">Back to the introduction</Link>
+      </header>
+      <main className="login-center">
+        <Logo inverse size={72} compact />
         <h1>Sign in before the codebase is treated as understood.</h1>
-        <p>The name on this session is the name stored when you confirm or correct an intent summary.</p>
-      </section>
-      <section className="login-panel">
         <LoginForm busy={busy} error={error} onSubmit={(email, password) => void onSubmit(email, password)} />
-      </section>
+      </main>
     </div>
   );
 }

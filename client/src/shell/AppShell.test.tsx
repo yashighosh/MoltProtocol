@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthProvider } from "../auth";
 import { AppShell } from "./AppShell";
 
@@ -21,6 +21,10 @@ describe("AppShell", () => {
     localStorage.setItem("moltprotocol-welcome-seen", "1");
   });
 
+  afterEach(() => {
+    document.documentElement.removeAttribute("data-theme");
+  });
+
   it("aligns header controls and keeps collapse readable", async () => {
     const user = userEvent.setup();
     render(
@@ -30,8 +34,9 @@ describe("AppShell", () => {
         </AuthProvider>
       </MemoryRouter>,
     );
-    expect(await screen.findByText(/Signed in as Ada Okonkwo/)).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /Signed in as Ada Okonkwo/ })).toHaveTextContent("A");
     expect(screen.getByRole("button", { name: "Search" })).toHaveClass("chrome-control");
+    expect(screen.getByRole("button", { name: "Switch to dark mode" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Notifications" })).toHaveClass("chrome-control");
     expect(screen.getByRole("combobox", { name: "Project" })).toHaveClass("chrome-control");
     const collapse = screen.getByRole("button", { name: "Collapse sidebar" });
