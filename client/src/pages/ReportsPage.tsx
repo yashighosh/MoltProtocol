@@ -5,6 +5,7 @@ import { api } from "../api";
 import { EmptyState } from "../components/EmptyState";
 import { ErrorState } from "../components/ErrorState";
 import { PageHeader } from "../components/PageHeader";
+import { getLeadership, getProposal, getRuleCheck, getSuite, listProposals, listRuleChecks, listSuites } from "../connection/modernize";
 import type { Discrepancy, IntentSummary, TraceRow } from "../types";
 
 function savePdf(title: string, lines: string[]) {
@@ -84,6 +85,67 @@ export function ReportsPage() {
           <h2>Dependency map</h2>
           <a className="button secondary" href={`/api/v1/projects/${projectId}/graph.svg`}>Download SVG</a>
           <a className="button secondary" href={`/api/v1/projects/${projectId}/graph.pdf`}>Download print PDF</a>
+        </article>
+        <article className="card stack">
+          <h2>Legacy Billing architecture</h2>
+          <p className="muted">The recorded target boundaries for the Legacy Billing sample.</p>
+          <button type="button" disabled={busy !== ""} onClick={() => void run("arch", async () => {
+            const list = await listProposals(projectId);
+            const proposal = list.items[0];
+            if (!proposal) throw new Error("No architecture demonstration is stored for this project.");
+            const detail = await getProposal(projectId, proposal.id);
+            const lines = [
+              detail.version.changeNote ?? "Legacy Billing demonstration.",
+              ...detail.components.map((component) => {
+                const modules = detail.mappings.filter((mapping) => mapping.componentId === component.id).map((mapping) => mapping.moduleName).join(", ");
+                return `${component.name} (${component.kind}): ${modules || "no modules"}`;
+              }),
+            ];
+            savePdf("Legacy Billing architecture", lines);
+          })}>{busy === "arch" ? "Building…" : "Download PDF"}</button>
+        </article>
+        <article className="card stack">
+          <h2>Legacy Billing rule preservation</h2>
+          <p className="muted">Preserved, distorted, and dropped rules from the billing sample.</p>
+          <button type="button" disabled={busy !== ""} onClick={() => void run("rules", async () => {
+            const list = await listRuleChecks(projectId);
+            const runId = list.items[0]?.id;
+            if (!runId) throw new Error("No rule-preservation demonstration is stored for this project.");
+            const check = await getRuleCheck(projectId, runId);
+            const lines = [
+              `${check.architectureLabel}. Preserved ${check.counts.preserved ?? "n/a"}, distorted ${check.counts.distorted ?? "n/a"}, dropped ${check.counts.dropped ?? "n/a"}.`,
+              ...check.rows.map((row) => `${row.ruleKey} ${row.status}: ${row.statement}`),
+            ];
+            savePdf("Legacy Billing rule preservation", lines);
+          })}>{busy === "rules" ? "Building…" : "Download PDF"}</button>
+        </article>
+        <article className="card stack">
+          <h2>Legacy Billing behavior walkthrough</h2>
+          <p className="muted">Recorded request comparison. No live endpoint is called.</p>
+          <button type="button" disabled={busy !== ""} onClick={() => void run("behavior", async () => {
+            const list = await listSuites(projectId);
+            const suiteId = list.items[0]?.id;
+            if (!suiteId) throw new Error("No behavior demonstration is stored for this project.");
+            const suite = await getSuite(projectId, suiteId);
+            const lines = [
+              `${suite.name}. Legacy: ${suite.legacy?.name ?? "none"}. Target: ${suite.modernized?.name ?? "none"}.`,
+              ...suite.cases.map((item) => `${item.outcome} ${item.method} ${item.path} — ${item.name}`),
+            ];
+            savePdf("Legacy Billing behavior", lines);
+          })}>{busy === "behavior" ? "Building…" : "Download PDF"}</button>
+        </article>
+        <article className="card stack">
+          <h2>Legacy Billing leadership</h2>
+          <p className="muted">Counts from this project's stored intent, plus the recorded rule and behavior lines.</p>
+          <button type="button" disabled={busy !== ""} onClick={() => void run("lead", async () => {
+            const overview = await getLeadership(projectId);
+            savePdf("Legacy Billing leadership", [
+              overview.narrative ?? "No narrative stored.",
+              `Verified ${overview.verified ?? "not assessed"}. Unexamined ${overview.unexamined ?? "not assessed"}. Not analyzable ${overview.notAnalyzable ?? "not assessed"}. High risk ${overview.highRisk ?? "not assessed"}.`,
+              overview.rulesLine ?? "",
+              overview.behaviorLine ?? "",
+            ]);
+          })}>{busy === "lead" ? "Building…" : "Download PDF"}</button>
         </article>
       </div>
     </div>
