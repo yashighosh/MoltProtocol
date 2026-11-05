@@ -26,9 +26,9 @@ function MiniMap({ projectId, enabled }: { projectId: string; enabled: boolean }
         const from = nodes.findIndex((node) => node.id === edge.from);
         const to = nodes.findIndex((node) => node.id === edge.to);
         if (from < 0 || to < 0) return null;
-        return <line key={edge.id} x1={20 + from * 24} y1={30} x2={20 + to * 24} y2={62} stroke={edge.resolution === "confirmed" ? "#c9a24a" : "#9b917f"} strokeDasharray={edge.resolution === "confirmed" ? undefined : "3 3"} />;
+        return <line key={edge.id} x1={20 + from * 24} y1={30} x2={20 + to * 24} y2={62} stroke={edge.resolution === "confirmed" ? "var(--gold)" : "var(--night-text-muted)"} strokeDasharray={edge.resolution === "confirmed" ? undefined : "3 3"} />;
       })}
-      {nodes.map((node, index) => <circle key={node.id} cx={20 + index * 24} cy={index % 2 ? 62 : 28} r="5" fill="#f4eee3" />)}
+      {nodes.map((node, index) => <circle key={node.id} cx={20 + index * 24} cy={index % 2 ? 62 : 28} r="5" fill="var(--night-text)" />)}
     </svg>
   );
 }
@@ -44,14 +44,14 @@ export function WorkspacePage() {
 
   return (
     <div className="stack">
-      <PageHeader eyebrow="Live" title="Projects" lede="Each analysis is one project. Ingestion, the dependency map, intent, review, and discrepancies share that identifier." actions={<span className="row"><OpenDemoButton /><Link className="button secondary" to="/ingestion">New project</Link></span>} />
+      <PageHeader title="Projects" lede="Each analysis is one project. Ingestion, the dependency map, intent, review, and discrepancies share that identifier." actions={<span className="row"><Link className="button" to="/ingestion">New project</Link><OpenDemoButton className="secondary" /></span>} />
       {error && <ErrorState message={error} onRetry={load} />}
       {!projects && !error && <Skeleton />}
       {projects?.length === 0 && <EmptyState title="No project yet">Open the demonstration project, or submit a codebase from Ingest.</EmptyState>}
       <div className="project-grid">
         {projects?.map((project) => {
           const language = project.summary.languages[0]?.language ?? "No parsed language";
-          const done = [project.ingestionStatus, project.analysisStatus, project.summaryStatus, project.discrepancyStatus].filter((status) => status === "complete").length;
+          const done = [project.ingestionStatus, project.analysisStatus, project.summaryStatus, project.discrepancyStatus].filter((status) => status === "complete").length + (project.reviewValidated ? 1 : 0);
           return (
             <article key={project.id} className="card project-card">
               <MiniMap projectId={project.id} enabled={project.analysisStatus === "complete"} />
@@ -66,7 +66,7 @@ export function WorkspacePage() {
                   <StatusBadge status={project.reviewValidated ? "confirmed" : "not_started"} label="Review" />
                   <StatusBadge status={project.discrepancyStatus} label="Compare" />
                 </div>
-                <div className="meter-track" aria-hidden="true"><span style={{ width: `${(done / 4) * 100}%` }} /></div>
+                <p className="muted">{done} of 5 stages complete{project.discrepancyStatus === "blocked" ? ", Compare needs attention" : ""}.</p>
                 <div className="row">
                   <Link className="button" to={`/dashboard/${project.id}`}>Open</Link>
                   {project.demonstration && <ResetDemoButton onReset={load} />}

@@ -1,7 +1,7 @@
 import { Upload } from "lucide-react";
 import { useState } from "react";
 
-export type IngestionMode = "upload" | "git";
+export type IngestionMode = "upload" | "git" | "sample";
 
 export function IngestionChooser({
   busy,
@@ -30,6 +30,7 @@ export function IngestionChooser({
       if (!url.trim().startsWith("https://")) return "The Git URL must start with https://. Local and non-https targets are rejected.";
     }
     if (mode === "upload" && files.length === 0) return "Choose a .zip archive or one or more source files.";
+    if (mode === "sample") return "";
     const oversized = files.find((file) => file.size > 20 * 1024 * 1024);
     if (oversized) return `${oversized.name} exceeds the 20 MB upload limit.`;
     return "";
@@ -41,6 +42,7 @@ export function IngestionChooser({
     setError(message);
     if (message) return;
     if (mode === "git") onGit(name.trim(), url.trim());
+    else if (mode === "sample") onSample(name.trim() || "Sample legacy billing");
     else onUpload(name.trim(), files);
   }
 
@@ -51,6 +53,7 @@ export function IngestionChooser({
       <div className="segmented" role="group" aria-label="Ingestion source">
         <button type="button" aria-pressed={mode === "upload"} onClick={() => setMode("upload")}>Upload archive</button>
         <button type="button" aria-pressed={mode === "git"} onClick={() => setMode("git")}>Git URL</button>
+        <button type="button" aria-pressed={mode === "sample"} onClick={() => setMode("sample")}>Bundled sample</button>
       </div>
       <div className="row">
         <span className="chip">JavaScript</span>
@@ -66,7 +69,9 @@ export function IngestionChooser({
         Project name
         <input value={name} onChange={(event) => setName(event.target.value)} name="projectName" autoComplete="off" />
       </label>
-      {mode === "upload" ? (
+      {mode === "sample" ? (
+        <p className="mono">Loads fixtures/sample-legacy. Files are parsed on the server. Nothing in the sample is executed.</p>
+      ) : mode === "upload" ? (
         <div
           className={`dropzone${hot ? " hot" : ""}`}
           onDragOver={(event) => { event.preventDefault(); setHot(true); }}

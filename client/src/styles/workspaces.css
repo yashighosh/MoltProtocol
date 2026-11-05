@@ -1,9 +1,9 @@
-.content.wide { width: min(100%, 1560px); }
+.content.wide { width: min(100%, var(--content-wide)); }
 
 .filter-bar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 16px; }
 .filter-search input { min-width: 180px; }
 .chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
-.chip[aria-pressed="true"] { background: var(--gold); color: #1c160c; border-color: var(--gold); }
+.chip[aria-pressed="true"] { background: var(--accent-wash); color: var(--accent-ink); border-color: var(--accent); }
 
 .table-scroll { overflow: auto; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); }
 .data-table { font-variant-numeric: tabular-nums; }
@@ -15,7 +15,7 @@
 .data-table tr[tabindex] { cursor: pointer; }
 
 .stat-tile {
-  background: var(--bg-sunken); border: 1px solid var(--border); border-radius: 8px;
+  background: var(--bg-sunken); border: 1px solid var(--border); border-radius: var(--radius-sm);
   padding: 10px 12px; display: grid; gap: 4px;
 }
 .stat-tile p:first-child { font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
@@ -82,7 +82,7 @@
   content: ""; position: absolute; top: 28px; right: -12px; width: 12px; height: 2px; background: var(--navy);
 }
 .trace-index {
-  display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%;
+  display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: var(--radius-full);
   background: var(--navy); color: var(--text-inverse); font-size: 12px; margin-bottom: 6px;
 }
 

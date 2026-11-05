@@ -23,14 +23,6 @@ type Props = {
 
 type SimNode = SimulationNodeDatum & GraphNode;
 
-const PALETTE = ["#263b50", "#1f1d18", "#2f6040", "#2a557f", "#4a3b16", "#6e2e2b"];
-
-function colorFor(directory: string) {
-  let hash = 0;
-  for (const char of directory) hash = (hash * 33 + char.charCodeAt(0)) >>> 0;
-  return PALETTE[hash % PALETTE.length];
-}
-
 function layout(nodes: GraphNode[], edges: GraphEdge[]) {
   const simNodes: SimNode[] = nodes.map((node, index) => ({
     ...node,
@@ -75,7 +67,8 @@ export function GraphCanvas({ projectId, nodes, edges, selectedId, onSelect }: P
   const visibleNodes = nodes.filter((node) => directory === "all" || node.directory === directory || node.kind !== "file");
   const visibleIds = new Set(visibleNodes.map((node) => node.id));
   const visibleEdges = edges.filter((edge) => visibleIds.has(edge.from) && visibleIds.has(edge.to));
-  const positions = useMemo(() => layout(visibleNodes, visibleEdges), [visibleNodes, visibleEdges]);
+  const layoutKey = `${directory}|${visibleNodes.map((node) => node.id).join(",")}|${visibleEdges.map((edge) => edge.id).join(",")}`;
+  const positions = useMemo(() => layout(visibleNodes, visibleEdges), [layoutKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const queryText = query.trim().toLowerCase();
 
   function exportCurrent(kind: "png" | "pdf") {
@@ -93,7 +86,7 @@ export function GraphCanvas({ projectId, nodes, edges, selectedId, onSelect }: P
       canvas.height = 1440;
       const context = canvas.getContext("2d");
       if (!context) return;
-      context.fillStyle = "#f4eee3";
+      context.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--bg-canvas").trim();
       context.fillRect(0, 0, canvas.width, canvas.height);
       context.drawImage(image, 0, 0, canvas.width, canvas.height);
       URL.revokeObjectURL(url);
@@ -155,7 +148,13 @@ export function GraphCanvas({ projectId, nodes, edges, selectedId, onSelect }: P
           onPointerUp={() => { drag.current = null; }}
           onPointerLeave={() => { drag.current = null; }}
         >
-          <rect width="1100" height="720" fill="#f4eee3" />
+          <defs>
+            <pattern id="graph-dots" width="16" height="16" patternUnits="userSpaceOnUse">
+              <circle cx="1" cy="1" r="0.8" fill="var(--border)" />
+            </pattern>
+          </defs>
+          <rect width="1100" height="720" fill="var(--surface)" />
+          <rect width="1100" height="720" fill="url(#graph-dots)" />
           <g transform={`translate(${pan.x} ${pan.y}) scale(${scale})`}>
             {visibleEdges.map((edge) => {
               const from = positions.get(edge.from);
@@ -166,8 +165,8 @@ export function GraphCanvas({ projectId, nodes, edges, selectedId, onSelect }: P
                 <line
                   key={edge.id}
                   x1={from.x} y1={from.y} x2={to.x} y2={to.y}
-                  stroke={confirmed ? "#263b50" : "#7c5e17"}
-                  strokeWidth="1.6"
+                  stroke={confirmed ? "var(--night-text-muted)" : "var(--danger-ink)"}
+                  strokeWidth={confirmed ? 1 : 1.25}
                   className={confirmed ? "edge-confirmed" : "edge-unresolved"}
                 />
               );
@@ -193,8 +192,8 @@ export function GraphCanvas({ projectId, nodes, edges, selectedId, onSelect }: P
                     }
                   }}
                 >
-                  <rect x={-78} y={-18} width="156" height="36" rx="12" fill={colorFor(node.directory)} />
-                  <text x="0" y="5" textAnchor="middle" fontFamily="ui-monospace, monospace" fontSize="11" fill="#f6f1e7">
+                  <rect x={-78} y={-18} width="156" height="36" rx="4" fill="var(--surface-sunken)" stroke="var(--espresso)" />
+                  <text x="0" y="5" textAnchor="middle" fontFamily="IBM Plex Mono, monospace" fontSize="11" fill="var(--text-primary)">
                     {(node.name.split("/").pop() ?? node.name).slice(0, 20)}
                   </text>
                 </g>

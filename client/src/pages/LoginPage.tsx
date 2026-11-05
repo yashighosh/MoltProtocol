@@ -82,11 +82,11 @@ export function LoginPage() {
     <div className="login-stage">
       <div className="hero-mesh" aria-hidden="true" />
       <header className="login-top">
-        <Logo inverse size={32} />
+        <Logo size={32} />
         <Link to="/">Back to the introduction</Link>
       </header>
       <main className="login-center">
-        <Logo inverse size={72} compact />
+        <Logo size={36} compact />
         <h1>Sign in before the codebase is treated as understood.</h1>
         <LoginForm busy={busy} error={error} onSubmit={(email, password) => void onSubmit(email, password)} />
       </main>
