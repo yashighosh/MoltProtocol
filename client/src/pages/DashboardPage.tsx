@@ -151,28 +151,27 @@ export function DashboardPage() {
       </section>
 
       {selected && (
-        <>
-          <section className="board-panel">
-            <div className="board-path">
-              <p className="board-kicker">Confidence</p>
-              <Link to={`/dependency-map/${data.projectId}`}>Open the map</Link>
-            </div>
-            {confidenceTotal === 0 ? (
-              <p className="muted">No confidence counts are stored yet.</p>
-            ) : (
-              <>
-                <div className="meter-bar" role="img" aria-label={`${data.confidence.high} high, ${data.confidence.medium} medium, ${data.confidence.low} low`}>
-                  {data.confidence.high > 0 && <span className="meter-high" style={{ flexGrow: data.confidence.high }} />}
-                  {data.confidence.medium > 0 && <span className="meter-med" style={{ flexGrow: data.confidence.medium }} />}
-                  {data.confidence.low > 0 && <span className="meter-low" style={{ flexGrow: data.confidence.low }} />}
-                </div>
-                <p className="muted">Confidence bands, not validation state. High {data.confidence.high} ({Math.round((data.confidence.high / confidenceTotal) * 100)}%). Medium {data.confidence.medium} ({Math.round((data.confidence.medium / confidenceTotal) * 100)}%). Low {data.confidence.low} ({Math.round((data.confidence.low / confidenceTotal) * 100)}%).</p>
-              </>
-            )}
-            <p className="muted">{data.reviewQueued} queued. {data.validatedByExperts} validated. {data.unreviewed} still inferred. {data.excludedUnreviewed} excluded from compare.</p>
-          </section>
-
-          <div className="board-split">
+        <div className="board-work">
+          <div className="stack">
+            <section className="board-panel">
+              <div className="board-path">
+                <p className="board-kicker">Confidence</p>
+                <Link to={`/dependency-map/${data.projectId}`}>Open the map</Link>
+              </div>
+              {confidenceTotal === 0 ? (
+                <p className="muted">No confidence counts are stored yet.</p>
+              ) : (
+                <>
+                  <div className="meter-bar" role="img" aria-label={`${data.confidence.high} high, ${data.confidence.medium} medium, ${data.confidence.low} low`}>
+                    {data.confidence.high > 0 && <span className="meter-high" style={{ flexGrow: data.confidence.high }} />}
+                    {data.confidence.medium > 0 && <span className="meter-med" style={{ flexGrow: data.confidence.medium }} />}
+                    {data.confidence.low > 0 && <span className="meter-low" style={{ flexGrow: data.confidence.low }} />}
+                  </div>
+                  <p className="muted">Confidence bands, not validation state. High {data.confidence.high} ({Math.round((data.confidence.high / confidenceTotal) * 100)}%). Medium {data.confidence.medium} ({Math.round((data.confidence.medium / confidenceTotal) * 100)}%). Low {data.confidence.low} ({Math.round((data.confidence.low / confidenceTotal) * 100)}%).</p>
+                </>
+              )}
+              <p className="muted">{data.reviewQueued} queued. {data.validatedByExperts} validated. {data.unreviewed} still inferred. {data.excludedUnreviewed} excluded from compare.</p>
+            </section>
             <section className="board-panel">
               <div className="board-path">
                 <p className="board-kicker">Discrepancies</p>
@@ -191,20 +190,20 @@ export function DashboardPage() {
                 ))}
               </ol>
             </section>
-            <section className="board-panel">
-              <p className="board-kicker">Activity</p>
-              {activity.length === 0 && <p className="muted">No ingestion events or intent revisions are stored yet.</p>}
-              <ol className="event-list">
-                {activity.map((item) => (
-                  <li key={`${item.at}-${item.label}-${item.detail}`}>
-                    <span className="mono">{stamp(item.at)}</span>
-                    <p>{item.label.replaceAll("_", " ")}{item.detail ? ` · ${item.detail}` : ""}{item.actor ? ` · ${item.actor}` : ""}</p>
-                  </li>
-                ))}
-              </ol>
-            </section>
           </div>
-        </>
+          <section className="board-panel">
+            <p className="board-kicker">Activity</p>
+            {activity.length === 0 && <p className="muted">No ingestion events or intent revisions are stored yet.</p>}
+            <ol className="event-list">
+              {activity.map((item) => (
+                <li key={`${item.at}-${item.label}-${item.detail}`}>
+                  <span className="mono">{stamp(item.at)}</span>
+                  <p>{item.label.replaceAll("_", " ")}{item.detail ? ` · ${item.detail}` : ""}{item.actor ? ` · ${item.actor}` : ""}</p>
+                </li>
+              ))}
+            </ol>
+          </section>
+        </div>
       )}
     </div>
   );
