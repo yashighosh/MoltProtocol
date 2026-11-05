@@ -80,16 +80,49 @@ export function LoginPage() {
 
   return (
     <div className="login-stage">
-      <div className="hero-mesh" aria-hidden="true" />
-      <header className="login-top">
-        <Logo size={32} />
-        <Link to="/">Back to the introduction</Link>
-      </header>
-      <main className="login-center">
-        <Logo size={36} compact />
-        <h1>Sign in before the codebase is treated as understood.</h1>
-        <LoginForm busy={busy} error={error} onSubmit={(email, password) => void onSubmit(email, password)} />
-      </main>
+      <section className="login-auth">
+        <header className="login-top">
+          <Logo size={32} />
+          <Link to="/">Back to the introduction</Link>
+        </header>
+        <div className="login-copy">
+          <h1>Sign in</h1>
+          <p className="lead">Sign in before the codebase is treated as understood.</p>
+          <LoginForm busy={busy} error={error} onSubmit={(email, password) => void onSubmit(email, password)} />
+        </div>
+      </section>
+      <aside className="login-visual" aria-hidden="true">
+        <svg viewBox="0 0 640 720">
+          <rect width="640" height="720" fill="var(--night-900)" />
+          <g fill="none" stroke="var(--gold)" strokeWidth="1.25">
+            <path d="M120 180 H250" />
+            <path d="M330 180 H470" />
+            <path d="M250 180 C290 180 290 340 330 340" />
+            <path d="M250 180 C290 180 290 520 330 520" />
+            <path d="M470 340 H560" strokeDasharray="5 4" stroke="var(--danger-ink)" />
+          </g>
+          <g fill="var(--night-800)" stroke="var(--night-text)" strokeWidth="1">
+            <rect x="48" y="148" width="132" height="64" rx="4" />
+            <rect x="198" y="148" width="132" height="64" rx="4" />
+            <rect x="330" y="308" width="140" height="64" rx="4" />
+            <rect x="330" y="488" width="140" height="64" rx="4" stroke="var(--success-ink)" />
+          </g>
+          <rect x="500" y="308" width="108" height="64" rx="4" fill="none" stroke="var(--danger-ink)" strokeDasharray="5 4" />
+          <g fill="var(--night-text)" fontFamily="IBM Plex Mono, monospace" fontSize="13">
+            <text x="64" y="176">legacy</text>
+            <text x="64" y="196">invoice.js</text>
+            <text x="214" y="176">tax.js</text>
+            <text x="214" y="196">confirmed</text>
+            <text x="346" y="336">review</text>
+            <text x="346" y="356">intent</text>
+            <text x="346" y="516">map</text>
+            <text x="346" y="536">edges</text>
+            <text x="514" y="336" fill="var(--danger-ink)">missing</text>
+            <text x="514" y="356" fill="var(--danger-ink)">rate.js</text>
+          </g>
+        </svg>
+        <p>Parsed modules, confirmed edges, and the file a review still has to account for.</p>
+      </aside>
     </div>
   );
 }
