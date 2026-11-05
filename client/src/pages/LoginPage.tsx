@@ -80,49 +80,50 @@ export function LoginPage() {
 
   return (
     <div className="login-stage">
-      <section className="login-auth">
-        <header className="login-top">
-          <Logo size={32} />
-          <Link to="/">Back to the introduction</Link>
-        </header>
-        <div className="login-copy">
+      <div className="login-frame">
+        <section className="login-card">
+          <header className="login-top">
+            <Logo size={32} />
+            <Link to="/">Back to the introduction</Link>
+          </header>
           <h1>Sign in</h1>
           <p className="lead">Sign in before the codebase is treated as understood.</p>
           <LoginForm busy={busy} error={error} onSubmit={(email, password) => void onSubmit(email, password)} />
-        </div>
-      </section>
-      <aside className="login-visual" aria-hidden="true">
-        <svg viewBox="0 0 640 720">
-          <rect width="640" height="720" fill="var(--night-900)" />
-          <g fill="none" stroke="var(--gold)" strokeWidth="1.25">
-            <path d="M120 180 H250" />
-            <path d="M330 180 H470" />
-            <path d="M250 180 C290 180 290 340 330 340" />
-            <path d="M250 180 C290 180 290 520 330 520" />
-            <path d="M470 340 H560" strokeDasharray="5 4" stroke="var(--danger-ink)" />
-          </g>
-          <g fill="var(--night-800)" stroke="var(--night-text)" strokeWidth="1">
-            <rect x="48" y="148" width="132" height="64" rx="4" />
-            <rect x="198" y="148" width="132" height="64" rx="4" />
-            <rect x="330" y="308" width="140" height="64" rx="4" />
-            <rect x="330" y="488" width="140" height="64" rx="4" stroke="var(--success-ink)" />
-          </g>
-          <rect x="500" y="308" width="108" height="64" rx="4" fill="none" stroke="var(--danger-ink)" strokeDasharray="5 4" />
-          <g fill="var(--night-text)" fontFamily="IBM Plex Mono, monospace" fontSize="13">
-            <text x="64" y="176">legacy</text>
-            <text x="64" y="196">invoice.js</text>
-            <text x="214" y="176">tax.js</text>
-            <text x="214" y="196">confirmed</text>
-            <text x="346" y="336">review</text>
-            <text x="346" y="356">intent</text>
-            <text x="346" y="516">map</text>
-            <text x="346" y="536">edges</text>
-            <text x="514" y="336" fill="var(--danger-ink)">missing</text>
-            <text x="514" y="356" fill="var(--danger-ink)">rate.js</text>
-          </g>
-        </svg>
-        <p>Parsed modules, confirmed edges, and the file a review still has to account for.</p>
-      </aside>
+        </section>
+        <aside className="login-visual" aria-hidden="true">
+          <svg viewBox="0 0 560 640">
+            <circle cx="300" cy="300" r="210" fill="var(--gold)" opacity="0.1" />
+            <circle cx="300" cy="300" r="150" fill="none" stroke="var(--gold)" strokeWidth="1" opacity="0.35" />
+            <g fill="none" stroke="var(--gold)" strokeWidth="1.5">
+              <path d="M168 168 C220 168 230 168 250 168" />
+              <path d="M360 168 C400 200 410 250 392 292" />
+              <path d="M250 210 C250 260 250 280 292 320" />
+              <path d="M168 210 C140 280 150 360 188 400" />
+              <path d="M430 300 H490" stroke="var(--danger-ink)" strokeDasharray="5 4" />
+            </g>
+            <g fill="var(--night-800)" stroke="var(--night-text)">
+              <rect x="48" y="132" width="150" height="78" rx="4" />
+              <rect x="250" y="118" width="140" height="78" rx="4" />
+              <rect x="250" y="292" width="150" height="78" rx="4" />
+              <rect x="78" y="392" width="150" height="78" rx="4" stroke="var(--success-ink)" />
+            </g>
+            <rect x="456" y="268" width="88" height="72" rx="4" fill="none" stroke="var(--danger-ink)" strokeDasharray="5 4" />
+            <g fill="var(--night-text)" fontFamily="IBM Plex Mono, monospace" fontSize="13">
+              <text x="64" y="164">legacy</text>
+              <text x="64" y="186">invoice.js</text>
+              <text x="266" y="150">tax.js</text>
+              <text x="266" y="172">confirmed</text>
+              <text x="266" y="324">review</text>
+              <text x="266" y="346">intent</text>
+              <text x="94" y="424">map</text>
+              <text x="94" y="446">edges</text>
+              <text x="468" y="300" fill="var(--danger-ink)">missing</text>
+              <text x="468" y="320" fill="var(--danger-ink)">rate.js</text>
+            </g>
+          </svg>
+          <p>Parsed modules, confirmed edges, and the file a review still has to account for.</p>
+        </aside>
+      </div>
     </div>
   );
 }
