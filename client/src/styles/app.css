@@ -125,7 +125,8 @@ html[data-theme="dark"] .avatar { color: var(--espresso); }
 @media (max-width: 960px) {
   .login-stage { grid-template-columns: 1fr; }
   .login-auth { min-height: 0; }
-  .login-visual { min-height: 220px; order: -1; padding: 16px; }
+  .login-visual { max-height: 220px; order: -1; padding: 16px; overflow: hidden; }
+  .login-visual svg { height: 140px; width: auto; }
   .login-copy { margin: 32px auto 48px; }
 }
 .login-note, .login-credentials { color: var(--text-secondary); font-size: var(--fs-sm); text-align: left; }

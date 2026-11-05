@@ -206,10 +206,13 @@ tr.selected { background: var(--gold-wash); }
 .discrepancy-workspace { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(320px, 1fr); gap: 24px; align-items: start; }
 .discrepancy-list { min-width: 0; overflow-x: auto; }
 .discrepancy-detail { max-height: calc(100vh - 180px); overflow: auto; }
+.discrepancy-detail { container-type: inline-size; }
 .compare-stack { display: grid; gap: 16px; }
-.compare-stack .code { max-width: 100%; }
-@media (min-width: 1440px) {
-  .compare-stack { grid-template-columns: 1fr 1fr; align-items: start; }
+.compare-stack > div { min-width: 0; }
+.compare-stack p { overflow-wrap: anywhere; }
+.compare-stack .code { max-width: 100%; overflow-x: auto; }
+@container (min-width: 760px) {
+  .compare-stack { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; }
 }
 @media (max-width: 1280px) {
   .discrepancy-workspace { grid-template-columns: 1fr; }

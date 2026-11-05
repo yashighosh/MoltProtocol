@@ -64,7 +64,7 @@ function layout(nodes: GraphNode[], edges: GraphEdge[]) {
 
 function fitOf(positions: Map<string, { x: number; y: number }>) {
   const points = [...positions.values()];
-  if (points.length === 0) return { scale: 1, pan: { x: 0, y: 0 } };
+  if (points.length === 0) return { scale: 1, pan: { x: 0, y: 0 }, open: { scale: 1, pan: { x: 0, y: 0 } } };
   const minX = Math.min(...points.map((point) => point.x)) - 110;
   const maxX = Math.max(...points.map((point) => point.x)) + 110;
   const minY = Math.min(...points.map((point) => point.y)) - 40;
@@ -72,9 +72,12 @@ function fitOf(positions: Map<string, { x: number; y: number }>) {
   const width = Math.max(1, maxX - minX);
   const height = Math.max(1, maxY - minY);
   const scale = Math.min((1100 - 96) / width, (720 - 96) / height, 1.4);
+  const fittedPan = { x: (1100 - width * scale) / 2 - minX * scale, y: (720 - height * scale) / 2 - minY * scale };
+  const opensFitted = scale >= 1;
   return {
     scale,
-    pan: { x: (1100 - width * scale) / 2 - minX * scale, y: (720 - height * scale) / 2 - minY * scale },
+    pan: fittedPan,
+    open: opensFitted ? { scale, pan: fittedPan } : { scale: 1, pan: { x: 48 - minX, y: 48 - minY } },
   };
 }
 
@@ -95,8 +98,8 @@ export function GraphCanvas({ projectId, nodes, edges, selectedId, onSelect }: P
   const queryText = query.trim().toLowerCase();
 
   useEffect(() => {
-    setScale(fitted.scale);
-    setPan(fitted.pan);
+    setScale(fitted.open.scale);
+    setPan(fitted.open.pan);
   }, [fitted]);
 
   function exportCurrent(kind: "png" | "pdf") {
