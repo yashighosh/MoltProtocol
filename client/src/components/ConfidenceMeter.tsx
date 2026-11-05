@@ -1,9 +1,11 @@
-export function ConfidenceMeter({ level, score }: { level: string; score?: number }) {
-  const width = score != null ? Math.round(Math.max(0, Math.min(1, score)) * 100) : level === "high" ? 84 : level === "medium" ? 56 : 32;
+export function ConfidenceMeter({ level }: { level: string; score?: number }) {
+  const bars = level === "high" ? 3 : level === "medium" ? 2 : 1;
   return (
     <span className={`meter meter-${level}`}>
+      <span className="meter-bars" aria-hidden="true">
+        {[1, 2, 3].map((step) => <i key={step} className={step <= bars ? "on" : ""} style={{ height: 4 + step * 3 }} />)}
+      </span>
       <span className="meter-label">{level} confidence</span>
-      <span className="meter-track" aria-hidden="true"><span style={{ width: `${width}%` }} /></span>
     </span>
   );
 }
