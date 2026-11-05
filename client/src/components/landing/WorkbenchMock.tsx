@@ -21,17 +21,17 @@ export function WorkbenchMock({ signedIn }: { signedIn: boolean }) {
             </div>
             <div className="mock-main">
               <svg viewBox="0 0 360 180" role="img" aria-label="Sample module map">
-                <line x1="40" y1="90" x2="150" y2="40" stroke="#263b50" strokeWidth="1.5" />
-                <line x1="40" y1="90" x2="150" y2="140" stroke="#263b50" strokeWidth="1.5" />
-                <line x1="40" y1="90" x2="250" y2="90" stroke="#7c5e17" strokeWidth="1.5" strokeDasharray="5 4" />
-                <rect x="10" y="72" width="90" height="32" rx="10" fill="#263b50" />
-                <rect x="150" y="24" width="70" height="32" rx="10" fill="#2f6040" />
-                <rect x="150" y="124" width="86" height="32" rx="10" fill="#2a557f" />
-                <rect x="250" y="74" width="90" height="32" rx="10" fill="none" stroke="#7c5e17" />
-                <text x="18" y="92" fill="#f6f1e7" fontSize="11">invoice.js</text>
-                <text x="164" y="44" fill="#f6f1e7" fontSize="11">tax.js</text>
-                <text x="158" y="144" fill="#f6f1e7" fontSize="11">discount.js</text>
-                <text x="258" y="94" fill="#7c5e17" fontSize="11">ledger.js</text>
+                <line x1="40" y1="90" x2="150" y2="40" stroke="var(--navy)" strokeWidth="1.5" />
+                <line x1="40" y1="90" x2="150" y2="140" stroke="var(--navy)" strokeWidth="1.5" />
+                <line x1="40" y1="90" x2="250" y2="90" stroke="var(--gold-ink)" strokeWidth="1.5" strokeDasharray="5 4" />
+                <rect x="10" y="72" width="90" height="32" rx="4" fill="var(--navy)" />
+                <rect x="150" y="24" width="70" height="32" rx="4" fill="var(--success-ink)" />
+                <rect x="150" y="124" width="86" height="32" rx="4" fill="var(--info-ink)" />
+                <rect x="250" y="74" width="90" height="32" rx="4" fill="none" stroke="var(--gold-ink)" />
+                <text x="18" y="92" fill="var(--text-inverse)" fontSize="11">invoice.js</text>
+                <text x="164" y="44" fill="var(--text-inverse)" fontSize="11">tax.js</text>
+                <text x="158" y="144" fill="var(--text-inverse)" fontSize="11">discount.js</text>
+                <text x="258" y="94" fill="var(--gold-ink)" fontSize="11">ledger.js</text>
               </svg>
             </div>
             <aside className="stack" style={{ padding: 16 }}>

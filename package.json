@@ -10,7 +10,8 @@
     "test": "npm run test -w server && npm run test -w client",
     "typecheck": "npm run typecheck -w server && npm run typecheck -w client",
     "build": "npm run build -w client",
-    "lint": "npm run lint -w client"
+    "lint": "npm run lint -w client",
+    "build:demo-zips": "node scripts/build-demo-zips.mjs"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

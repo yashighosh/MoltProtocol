@@ -28,8 +28,8 @@ export function StatusBadge({ status, label }: { status: string; label?: string 
   const text = label ?? status.replaceAll("_", " ");
   const Icon = status === "running" ? LoaderCircle : tone === "preserved" ? Check : tone === "attention" ? AlertTriangle : tone === "error" ? CircleAlert : tone === "navy" ? Info : CircleDot;
   return (
-    <span className={`badge badge-${tone}`}>
-      <Icon size={13} aria-hidden="true" />
+    <span className={`badge status-mark badge-${tone}`}>
+      <Icon size={8} strokeWidth={2.5} aria-hidden="true" />
       {text}
     </span>
   );

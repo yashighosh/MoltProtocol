@@ -44,10 +44,13 @@ export function RuleCheckPage() {
   return (
     <div className="stack">
       <PageHeader
-        eyebrow="Preview"
+        eyebrow="Demonstration"
         title="Rule preservation"
         lede="Preserved means a component explicitly carries this rule and an architect affirmed it. A rule only mentioned in a description is not counted as preserved. This is a static comparison. It does not prove runtime behavior."
       />
+      {checks.state.kind === "ready" && checks.state.data.items.some((item) => item.id === "billing-demo-check") && (
+        <p className="callout" role="status">Demonstration for Legacy Billing. Preserved, distorted, and dropped follow the sample's billing rules and the findings already stored for this project.</p>
+      )}
       {checks.state.kind === "loading" && <Skeleton lines={5} />}
       {checks.state.kind === "error" && <ErrorState message={checks.state.message} onRetry={checks.reload} />}
       {checks.state.kind === "disconnected" && <PendingData title="No rule check is stored yet" />}

@@ -54,13 +54,16 @@ export function BehaviorPage() {
   return (
     <div className="stack">
       <PageHeader
-        eyebrow="Preview"
+        eyebrow="Demonstration"
         title="Behavior testing"
         lede="Runtime comparison of endpoints you configured. The same request is sent to the legacy endpoint and the modernized endpoint. Uploaded code is not executed."
         actions={<button type="button" onClick={() => void run()} disabled={!suiteId}>Run comparison</button>}
       />
       <JobStatus projectId={projectId} jobId={jobId} />
       {actionError && <ErrorState message={actionError} />}
+      {suites.state.kind === "ready" && suites.state.data.items.some((item) => item.id === "billing-demo-suite") && (
+        <p className="callout" role="status">Demonstration for Legacy Billing. These requests and responses are a recorded walkthrough of the sample. No live endpoint was called.</p>
+      )}
       {suites.state.kind === "loading" && <Skeleton lines={4} />}
       {suites.state.kind === "error" && <ErrorState message={suites.state.message} onRetry={suites.reload} />}
       {suites.state.kind === "disconnected" && (

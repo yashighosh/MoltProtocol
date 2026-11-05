@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { api } from "../api";
 import { useAuth } from "../auth";
 
-export function OpenDemoButton({ label = "Open demo project" }: { label?: string }) {
+export function OpenDemoButton({ label = "Open demo project", className = "" }: { label?: string; className?: string }) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
@@ -28,7 +28,7 @@ export function OpenDemoButton({ label = "Open demo project" }: { label?: string
 
   return (
     <span className="demo-action">
-      <button type="button" onClick={() => void open()} disabled={busy}>{busy ? "Opening demo…" : label}</button>
+      <button type="button" className={className} onClick={() => void open()} disabled={busy}>{busy ? "Opening demo…" : label}</button>
       {error && <span role="alert">{error}</span>}
     </span>
   );

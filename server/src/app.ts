@@ -33,6 +33,7 @@ import {
   summaryDetail,
 } from "./pipeline.js";
 import { openDemoProject, resetDemoProject } from "./demo.js";
+import { registerBillingDemo } from "./demo/billingModernize.js";
 import { dashboardPayload, traceabilityPayload } from "./readModels.js";
 import { readZip } from "./ingest/zipSafe.js";
 import { SUPPORTED_LANGUAGE_NOTE } from "./ingest/classify.js";
@@ -399,6 +400,8 @@ export function createApp(db: AppDatabase, options: { maxUploadBytes?: number } 
       next(error);
     }
   });
+
+  registerBillingDemo(app, db);
 
   app.use("/api", (req, res) => {
     res.status(404).json(errorBody(new HttpError(404, "NOT_FOUND", `No API route matches ${req.method} ${req.path}.`)));

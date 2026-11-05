@@ -1,5 +1,4 @@
 import {
-  forceCenter,
   forceCollide,
   forceLink,
   forceManyBody,
@@ -10,7 +9,7 @@ import {
   type SimulationNodeDatum,
 } from "d3-force";
 import { jsPDF } from "jspdf";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { GraphEdge, GraphNode } from "../types";
 
 type Props = {
@@ -23,45 +22,63 @@ type Props = {
 
 type SimNode = SimulationNodeDatum & GraphNode;
 
-const PALETTE = ["#263b50", "#1f1d18", "#2f6040", "#2a557f", "#4a3b16", "#6e2e2b"];
-
-function colorFor(directory: string) {
-  let hash = 0;
-  for (const char of directory) hash = (hash * 33 + char.charCodeAt(0)) >>> 0;
-  return PALETTE[hash % PALETTE.length];
+function unresolvedNode(node: GraphNode) {
+  return node.resolution === "unresolved" || node.name.startsWith("missing:");
 }
 
 function layout(nodes: GraphNode[], edges: GraphEdge[]) {
-  const simNodes: SimNode[] = nodes.map((node, index) => ({
-    ...node,
-    x: 140 + (index % 5) * 160,
-    y: 100 + Math.floor(index / 5) * 120,
-  }));
-  const ids = new Set(simNodes.map((node) => node.id));
-  const links: SimulationLinkDatum<SimNode>[] = edges
-    .filter((edge) => ids.has(edge.from) && ids.has(edge.to))
-    .map((edge) => ({ source: edge.from, target: edge.to }));
-  const directories = [...new Set(simNodes.map((node) => node.directory))];
-  const simulation = forceSimulation(simNodes)
-    .force("link", forceLink<SimNode, SimulationLinkDatum<SimNode>>(links).id((node) => node.id).distance(120).strength(0.4))
-    .force("charge", forceManyBody().strength(-240))
-    .force("center", forceCenter(550, 340))
-    .force("collide", forceCollide(48))
-    .force("x", forceX<SimNode>((node) => 120 + Math.max(0, directories.indexOf(node.directory)) * 180).strength(0.14))
-    .force("y", forceY(340).strength(0.05))
-    .stop();
-  for (let tick = 0; tick < 240; tick += 1) simulation.tick();
-  const raw = simNodes.map((node) => ({ id: node.id, x: node.x ?? 0, y: node.y ?? 0 }));
-  const minX = Math.min(...raw.map((point) => point.x));
-  const maxX = Math.max(...raw.map((point) => point.x));
-  const minY = Math.min(...raw.map((point) => point.y));
-  const maxY = Math.max(...raw.map((point) => point.y));
-  const spanX = maxX - minX || 1;
-  const spanY = maxY - minY || 1;
-  return new Map(raw.map((point) => [point.id, {
-    x: 130 + ((point.x - minX) / spanX) * 840,
-    y: 70 + ((point.y - minY) / spanY) * 560,
-  }]));
+  const groups = new Map<string, GraphNode[]>();
+  for (const node of nodes) {
+    const key = unresolvedNode(node) ? "Unresolved" : (node.directory || "(root)");
+    const list = groups.get(key) ?? [];
+    list.push(node);
+    groups.set(key, list);
+  }
+  const keys = [...groups.keys()].filter((key) => key !== "Unresolved").sort();
+  if (groups.has("Unresolved")) keys.push("Unresolved");
+  for (const key of keys) groups.get(key)!.sort((left, right) => left.name.localeCompare(right.name));
+
+  const simNodes: SimNode[] = [];
+  keys.forEach((key, column) => {
+    groups.get(key)!.forEach((node, row) => {
+      const x = 160 + column * 220;
+      simNodes.push({ ...node, x, y: 88 + row * 76, fx: x });
+    });
+  });
+  if (simNodes.length > 1) {
+    const ids = new Set(simNodes.map((node) => node.id));
+    const links: SimulationLinkDatum<SimNode>[] = edges
+      .filter((edge) => ids.has(edge.from) && ids.has(edge.to))
+      .map((edge) => ({ source: edge.from, target: edge.to }));
+    const simulation = forceSimulation(simNodes)
+      .force("link", forceLink<SimNode, SimulationLinkDatum<SimNode>>(links).id((node) => node.id).distance(76).strength(0.02))
+      .force("collide", forceCollide(42))
+      .force("charge", forceManyBody().strength(-12))
+      .force("x", forceX<SimNode>((node) => node.fx ?? node.x ?? 0).strength(1))
+      .force("y", forceY<SimNode>((node) => node.y ?? 88).strength(0.4))
+      .stop();
+    for (let tick = 0; tick < 40; tick += 1) simulation.tick();
+  }
+  return new Map(simNodes.map((node) => [node.id, { x: node.fx ?? node.x ?? 0, y: node.y ?? 0 }]));
+}
+
+function fitOf(positions: Map<string, { x: number; y: number }>) {
+  const points = [...positions.values()];
+  if (points.length === 0) return { scale: 1, pan: { x: 0, y: 0 }, open: { scale: 1, pan: { x: 0, y: 0 } } };
+  const minX = Math.min(...points.map((point) => point.x)) - 110;
+  const maxX = Math.max(...points.map((point) => point.x)) + 110;
+  const minY = Math.min(...points.map((point) => point.y)) - 40;
+  const maxY = Math.max(...points.map((point) => point.y)) + 40;
+  const width = Math.max(1, maxX - minX);
+  const height = Math.max(1, maxY - minY);
+  const scale = Math.min((1100 - 96) / width, (720 - 96) / height, 1.4);
+  const fittedPan = { x: (1100 - width * scale) / 2 - minX * scale, y: (720 - height * scale) / 2 - minY * scale };
+  const opensFitted = scale >= 1;
+  return {
+    scale,
+    pan: fittedPan,
+    open: opensFitted ? { scale, pan: fittedPan } : { scale: 1, pan: { x: 48 - minX, y: 48 - minY } },
+  };
 }
 
 export function GraphCanvas({ projectId, nodes, edges, selectedId, onSelect }: Props) {
@@ -75,8 +92,15 @@ export function GraphCanvas({ projectId, nodes, edges, selectedId, onSelect }: P
   const visibleNodes = nodes.filter((node) => directory === "all" || node.directory === directory || node.kind !== "file");
   const visibleIds = new Set(visibleNodes.map((node) => node.id));
   const visibleEdges = edges.filter((edge) => visibleIds.has(edge.from) && visibleIds.has(edge.to));
-  const positions = useMemo(() => layout(visibleNodes, visibleEdges), [visibleNodes, visibleEdges]);
+  const layoutKey = `${directory}|${visibleNodes.map((node) => node.id).join(",")}|${visibleEdges.map((edge) => edge.id).join(",")}`;
+  const positions = useMemo(() => layout(visibleNodes, visibleEdges), [layoutKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  const fitted = useMemo(() => fitOf(positions), [positions]);
   const queryText = query.trim().toLowerCase();
+
+  useEffect(() => {
+    setScale(fitted.open.scale);
+    setPan(fitted.open.pan);
+  }, [fitted]);
 
   function exportCurrent(kind: "png" | "pdf") {
     const svg = svgRef.current;
@@ -93,7 +117,7 @@ export function GraphCanvas({ projectId, nodes, edges, selectedId, onSelect }: P
       canvas.height = 1440;
       const context = canvas.getContext("2d");
       if (!context) return;
-      context.fillStyle = "#f4eee3";
+      context.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--bg-canvas").trim();
       context.fillRect(0, 0, canvas.width, canvas.height);
       context.drawImage(image, 0, 0, canvas.width, canvas.height);
       URL.revokeObjectURL(url);
@@ -126,6 +150,7 @@ export function GraphCanvas({ projectId, nodes, edges, selectedId, onSelect }: P
         </label>
         <button type="button" className="secondary" onClick={() => setScale((value) => Math.min(2.4, value + 0.15))}>Zoom in</button>
         <button type="button" className="secondary" onClick={() => setScale((value) => Math.max(0.4, value - 0.15))}>Zoom out</button>
+        <button type="button" className="secondary" onClick={() => { setScale(fitted.scale); setPan(fitted.pan); }}>Fit</button>
         <button type="button" className="secondary" onClick={() => { setScale(1); setPan({ x: 0, y: 0 }); }}>Reset view</button>
         <button type="button" className="secondary" onClick={() => exportCurrent("png")}>Export PNG</button>
         <button type="button" className="secondary" onClick={() => exportCurrent("pdf")}>Export PDF</button>
@@ -155,19 +180,26 @@ export function GraphCanvas({ projectId, nodes, edges, selectedId, onSelect }: P
           onPointerUp={() => { drag.current = null; }}
           onPointerLeave={() => { drag.current = null; }}
         >
-          <rect width="1100" height="720" fill="#f4eee3" />
+          <defs>
+            <pattern id="graph-dots" width="16" height="16" patternUnits="userSpaceOnUse">
+              <circle cx="1" cy="1" r="0.8" fill="var(--border)" />
+            </pattern>
+          </defs>
+          <rect width="1100" height="720" fill="var(--surface)" />
+          <rect width="1100" height="720" fill="url(#graph-dots)" />
           <g transform={`translate(${pan.x} ${pan.y}) scale(${scale})`}>
             {visibleEdges.map((edge) => {
               const from = positions.get(edge.from);
               const to = positions.get(edge.to);
               if (!from || !to) return null;
               const confirmed = edge.resolution === "confirmed";
+              const highlighted = edge.from === selectedId || edge.to === selectedId;
               return (
                 <line
                   key={edge.id}
                   x1={from.x} y1={from.y} x2={to.x} y2={to.y}
-                  stroke={confirmed ? "#263b50" : "#7c5e17"}
-                  strokeWidth="1.6"
+                  stroke={highlighted ? "var(--navy)" : confirmed ? "var(--night-text-muted)" : "var(--danger-ink)"}
+                  strokeWidth={highlighted ? 1.5 : confirmed ? 1 : 1.25}
                   className={confirmed ? "edge-confirmed" : "edge-unresolved"}
                 />
               );
@@ -176,6 +208,9 @@ export function GraphCanvas({ projectId, nodes, edges, selectedId, onSelect }: P
               const at = positions.get(node.id);
               if (!at) return null;
               const dim = queryText.length > 0 && !node.name.toLowerCase().includes(queryText);
+              const label = (node.name.split("/").pop() ?? node.name).slice(0, 28);
+              const width = Math.max(120, Math.min(200, label.length * 7.4 + 28));
+              const unresolved = unresolvedNode(node);
               return (
                 <g
                   key={node.id}
@@ -193,9 +228,9 @@ export function GraphCanvas({ projectId, nodes, edges, selectedId, onSelect }: P
                     }
                   }}
                 >
-                  <rect x={-78} y={-18} width="156" height="36" rx="12" fill={colorFor(node.directory)} />
-                  <text x="0" y="5" textAnchor="middle" fontFamily="ui-monospace, monospace" fontSize="11" fill="#f6f1e7">
-                    {(node.name.split("/").pop() ?? node.name).slice(0, 20)}
+                  <rect x={-width / 2} y={-18} width={width} height="36" rx="4" fill="var(--surface)" stroke={unresolved ? "var(--danger-ink)" : "var(--espresso)"} />
+                  <text x="0" y="5" textAnchor="middle" fontFamily="IBM Plex Mono, monospace" fontSize="12" fill="var(--text-primary)">
+                    {label}
                   </text>
                 </g>
               );

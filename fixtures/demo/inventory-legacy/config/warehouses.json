@@ -1,0 +1,6 @@
+{
+  "warehouses": [
+    { "id": "east", "region": "us-east" },
+    { "id": "central", "region": "us-central" }
+  ]
+}

@@ -137,6 +137,16 @@ CREATE TABLE IF NOT EXISTS discrepancies (
 
 CREATE UNIQUE INDEX IF NOT EXISTS projects_demo_marker ON projects(source_ref) WHERE source_ref = 'demo:fixtures/sample-legacy';
 
+CREATE TABLE IF NOT EXISTS demo_rule_decisions (
+  id TEXT PRIMARY KEY,
+  project_id TEXT NOT NULL,
+  rule_id TEXT NOT NULL,
+  status TEXT NOT NULL,
+  justification TEXT,
+  decided_by TEXT,
+  decided_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS jobs (
   id TEXT PRIMARY KEY,
   project_id TEXT NOT NULL REFERENCES projects(id),

@@ -1,0 +1,9 @@
+/* Metric-matched fallback while IBM Plex loads. The face files are attached from main.tsx so only latin woff2 is bundled. */
+@font-face {
+  font-family: "Plex Sans Fallback";
+  src: local("Segoe UI"), local("Helvetica Neue"), local("Arial");
+  size-adjust: 100%;
+  ascent-override: 102%;
+  descent-override: 22%;
+  line-gap-override: 0%;
+}

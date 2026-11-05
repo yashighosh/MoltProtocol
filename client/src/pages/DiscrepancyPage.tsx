@@ -92,7 +92,8 @@ export function DiscrepancyPage() {
               </select>
             </label>
           </div>
-          <div className="split map">
+          <div className="discrepancy-workspace">
+            <div className="discrepancy-list">
             <table>
               <thead><tr><th>Rank</th><th>Module</th><th>Severity</th><th>Impact</th><th>Status</th></tr></thead>
               <tbody>
@@ -109,13 +110,21 @@ export function DiscrepancyPage() {
                 ))}
               </tbody>
             </table>
+            </div>
             {selected && (
-              <article className="card stack">
-                <h2>{selected.ruleId}</h2>
+              <article className="card stack discrepancy-detail">
+                <h2 className="mono">{selected.ruleId}</h2>
+                <p className="path">{selected.moduleName}</p>
+                <div className="row">
+                  <StatusBadge status={selected.severity} />
+                  <StatusBadge status={selected.status} />
+                  <span className="mono">Impact {selected.impactScore}</span>
+                </div>
                 <p>{selected.description}</p>
-                <div className="split">
+                <div className="compare-stack">
                   <div>
                     <h2>Code evidence</h2>
+                    <p className="mono">{selected.moduleName} · lines {selected.startLine}–{selected.endLine}</p>
                     <pre className="code">{selected.codeExcerpt}</pre>
                   </div>
                   <div>

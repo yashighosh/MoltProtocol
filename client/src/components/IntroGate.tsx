@@ -51,10 +51,10 @@ export function IntroGate({ children }: { children: React.ReactNode }) {
           <svg viewBox="0 0 580 190" aria-hidden="true">
             {NODES.slice(0, -1).map((node, index) => {
               const next = NODES[index + 1];
-              return <line key={node.cx} className="link-draw" x1={node.cx} y1={node.cy} x2={next.cx} y2={next.cy} stroke="#c9a24a" strokeWidth="1.4" style={{ animationDelay: `${0.45 + index * 0.12}s` }} />;
+              return <line key={node.cx} className="link-draw" x1={node.cx} y1={node.cy} x2={next.cx} y2={next.cy} stroke="var(--gold)" strokeWidth="1.4" style={{ animationDelay: `${0.45 + index * 0.12}s` }} />;
             })}
             {NODES.map((node) => (
-              <circle key={node.cx} className="node-pop" cx={node.cx} cy={node.cy} r="7" fill={node.cx === 70 || node.cx === 510 ? "#c9a24a" : "#f4eee3"} style={{ animationDelay: node.delay }} />
+              <circle key={node.cx} className="node-pop" cx={node.cx} cy={node.cy} r="7" fill={node.cx === 70 || node.cx === 510 ? "var(--gold)" : "var(--night-text)"} style={{ animationDelay: node.delay }} />
             ))}
           </svg>
           <p className="intro-mark">MoltProtocol</p>

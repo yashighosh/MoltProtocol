@@ -51,11 +51,14 @@ export function RulesPage() {
   return (
     <div className="stack">
       <PageHeader
-        eyebrow="Preview"
+        eyebrow="Demonstration"
         title="Rules"
         lede="Candidate sentences come from validated intent. They are not counted in coverage or compliance until an architect accepts them."
       />
       <FilterBar label="Rules" segments={STATUSES} segment={status} onSegment={(id) => setFilter("status", id)} search={q} onSearch={(value) => setFilter("q", value)} />
+      {rules.state.kind === "ready" && rows.some((row) => row.ruleKey === "BR-B01") && (
+        <p className="callout" role="status">Demonstration for Legacy Billing. These are the sample's billing rules, marked accepted so preservation and traceability can count them.</p>
+      )}
       {rules.state.kind === "loading" && <Skeleton lines={5} />}
       {rules.state.kind === "error" && <ErrorState message={rules.state.message} onRetry={rules.reload} />}
       {rules.state.kind === "disconnected" && <PendingData title="No rule registry yet" />}

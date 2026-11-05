@@ -1,7 +1,6 @@
-import { AnimatePresence, motion } from "framer-motion";
 import {
   BadgeCheck, FileSearch, FolderKanban, GitCompare, LayoutDashboard, ListChecks,
-  LogOut, Menu, PanelLeft, Scale, ScrollText, Settings, Share2, Shield, Upload, Workflow,
+  LogOut, Menu, Moon, PanelLeft, Scale, ScrollText, Search, Settings, Share2, Shield, Sun, Upload, Workflow,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate, useParams } from "react-router-dom";
@@ -11,26 +10,25 @@ import { Breadcrumbs } from "../components/Breadcrumbs";
 import { CommandPalette } from "../components/CommandPalette";
 import { Logo } from "../components/Logo";
 import { NotificationBell, watchProject, type Notice } from "../components/NotificationBell";
-import { motionTokens } from "../motion";
 import type { Project } from "../types";
 
 const GROUPS = [
   { label: "Overview", items: [
-    { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, tag: "Live" },
-    { to: "/workspace", label: "Projects", icon: FolderKanban, tag: "Live" },
+    { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, tag: "" },
+    { to: "/workspace", label: "Projects", icon: FolderKanban, tag: "" },
   ]},
   { label: "Analysis", items: [
-    { to: "/ingestion", label: "Ingest", icon: Upload, tag: "Live" },
-    { to: "/progress", label: "Progress", icon: ListChecks, tag: "Live" },
-    { to: "/dependency-map", label: "Dependency map", icon: Share2, tag: "Live" },
+    { to: "/ingestion", label: "Ingest", icon: Upload, tag: "" },
+    { to: "/progress", label: "Progress", icon: ListChecks, tag: "" },
+    { to: "/dependency-map", label: "Dependency map", icon: Share2, tag: "" },
   ]},
   { label: "Intent", items: [
-    { to: "/intent-summaries", label: "Intent summaries", icon: FileSearch, tag: "Live" },
+    { to: "/intent-summaries", label: "Intent summaries", icon: FileSearch, tag: "" },
     { to: "/rules", label: "Rules", icon: Scale, tag: "Preview" },
   ]},
   { label: "Review", items: [
-    { to: "/intent-review", label: "Expert review", icon: BadgeCheck, tag: "Live" },
-    { to: "/discrepancies", label: "Discrepancies", icon: GitCompare, tag: "Live" },
+    { to: "/intent-review", label: "Expert review", icon: BadgeCheck, tag: "" },
+    { to: "/discrepancies", label: "Discrepancies", icon: GitCompare, tag: "" },
   ]},
   { label: "Modernize", items: [
     { to: "/architecture", label: "Architecture", icon: Workflow, tag: "Preview" },
@@ -38,12 +36,12 @@ const GROUPS = [
     { to: "/behavior", label: "Behavior testing", icon: ListChecks, tag: "Preview" },
   ]},
   { label: "Output", items: [
-    { to: "/traceability", label: "Compliance and traceability", icon: ScrollText, tag: "Live" },
+    { to: "/traceability", label: "Compliance and traceability", icon: ScrollText, tag: "" },
     { to: "/leadership", label: "Leadership view", icon: LayoutDashboard, tag: "Preview" },
-    { to: "/reports", label: "Reports", icon: FileSearch, tag: "Live" },
+    { to: "/reports", label: "Reports", icon: FileSearch, tag: "" },
   ]},
   { label: "Settings", items: [
-    { to: "/settings", label: "Settings", icon: Settings, tag: "Live" },
+    { to: "/settings", label: "Settings", icon: Settings, tag: "" },
   ]},
 ];
 
@@ -83,6 +81,12 @@ export function AppShell() {
   const [palette, setPalette] = useState(false);
   const [notices, setNotices] = useState<Notice[]>([]);
   const [welcome, setWelcome] = useState(localStorage.getItem("moltprotocol-welcome-seen") !== "1");
+  const [theme, setTheme] = useState(localStorage.getItem("moltprotocol-theme") === "dark" ? "dark" : "light");
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem("moltprotocol-theme", theme);
+  }, [theme]);
 
   useEffect(() => {
     api<{ projects: Project[] }>("/api/v1/projects").then((result) => setProjects(result.projects)).catch(() => setProjects([]));
@@ -154,7 +158,7 @@ export function AppShell() {
     <div className={`shell${collapsed ? " collapsed" : ""}`}>
       <a className="skip-link" href="#content">Skip to content</a>
       <aside className={`sidebar on-dark${menuOpen ? " open" : ""}`}>
-        <Logo compact={collapsed} inverse />
+        <Logo compact={collapsed} inverse size={26} />
         <nav aria-label="Workbench">
           {GROUPS.map((group) => (
             <div className="nav-group" key={group.label}>
@@ -163,9 +167,9 @@ export function AppShell() {
                 const Icon = item.icon;
                 return (
                   <NavLink key={item.to} className={({ isActive }) => `nav-link${isActive ? " active" : ""}`} to={hrefFor(item.to, projectId)} title={item.label} onClick={() => setMenuOpen(false)}>
-                    <Icon size={18} aria-hidden="true" />
+                    <Icon size={16} strokeWidth={1.75} aria-hidden="true" />
                     <span className="label">{item.label}</span>
-                    <span className={`tag${item.tag === "Live" ? " live" : ""}`}>{item.tag}</span>
+                    {item.tag === "Preview" && <span className="nav-preview">Preview</span>}
                   </NavLink>
                 );
               })}
@@ -173,41 +177,62 @@ export function AppShell() {
           ))}
         </nav>
         <div className="side-foot">
+          <p className="identity-note">
+            <span aria-hidden="true">{(user?.displayName?.trim().split(/\s+/)[0]?.[0] ?? "?").toUpperCase()}</span>
+            <span><strong>{user?.displayName ?? "Signed in"}</strong><span>{user?.identityLabel ?? "Demo identity"}</span></span>
+          </p>
           <button type="button" className="side-action" aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"} title={collapsed ? "Expand sidebar" : "Collapse sidebar"} onClick={toggleSidebar}>
-            <PanelLeft size={18} aria-hidden="true" />
+            <PanelLeft size={16} strokeWidth={1.75} aria-hidden="true" />
             <span>{collapsed ? "Expand" : "Collapse"}</span>
           </button>
           <button type="button" className="side-action" aria-label="Sign out" title="Sign out" onClick={() => void signOut()}>
-            <LogOut size={18} aria-hidden="true" />
+            <LogOut size={16} strokeWidth={1.75} aria-hidden="true" />
             <span>Sign out</span>
           </button>
         </div>
       </aside>
       <div className="main-col">
         <header className="topbar">
-          <button type="button" className="icon-btn menu-btn chrome-control" aria-label="Open navigation" onClick={() => setMenuOpen((value) => !value)}><Menu size={18} /></button>
+          <button type="button" className="icon-btn menu-btn chrome-control" aria-label="Open navigation" onClick={() => setMenuOpen((value) => !value)}><Menu size={16} strokeWidth={1.75} /></button>
           <div className="grow stack" style={{ gap: 2 }}>
             <Breadcrumbs items={crumbs} />
           </div>
-          <label className="visually-hidden" htmlFor="project-switch">Project</label>
-          <select id="project-switch" className="chrome-control" aria-label="Project" value={projectId ?? ""} onChange={(event) => {
-            const next = event.target.value;
-            const base = `/${section}`;
-            navigate(next ? hrefFor(base, next) : base);
-          }}>
-            <option value="">No project selected</option>
-            {projects.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-          </select>
-          <button type="button" className="secondary search-btn chrome-control" onClick={() => setPalette(true)}>Search</button>
-          <NotificationBell notices={notices} />
-          <p className="identity-chip chrome-control">Signed in as {user?.displayName} · {user?.identityLabel}</p>
+          <div className="topbar-actions">
+            <label className="visually-hidden" htmlFor="project-switch">Project</label>
+            <select id="project-switch" className="chrome-control" aria-label="Project" value={projectId ?? ""} onChange={(event) => {
+              const next = event.target.value;
+              const base = `/${section}`;
+              navigate(next ? hrefFor(base, next) : base);
+            }}>
+              <option value="">No project selected</option>
+              {projects.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+            </select>
+            <div className="tool-tray">
+              <button type="button" className="icon-btn chrome-control" aria-label="Search" onClick={() => setPalette(true)}>
+                <Search size={16} strokeWidth={1.75} />
+              </button>
+              <NotificationBell notices={notices} />
+              <button
+                type="button"
+                className="icon-btn chrome-control"
+                aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+                onClick={() => setTheme((value) => value === "dark" ? "light" : "dark")}
+              >
+                {theme === "dark" ? <Sun size={16} strokeWidth={1.75} /> : <Moon size={16} strokeWidth={1.75} />}
+              </button>
+            </div>
+            <button
+              type="button"
+              className="avatar chrome-control"
+              aria-label={`Signed in as ${user?.displayName ?? "user"}, ${user?.identityLabel ?? "signed-in identity"}`}
+              title={`${user?.displayName ?? "Signed in"} · ${user?.identityLabel ?? ""}`}
+            >
+              {(user?.displayName?.trim().split(/\s+/)[0]?.[0] ?? "?").toUpperCase()}
+            </button>
+          </div>
         </header>
-        <main id="content" className={`content${["architecture", "rule-check", "behavior", "traceability", "leadership", "rules"].includes(section) ? " wide" : ""}`}>
-          <AnimatePresence mode="wait">
-            <motion.div key={location.pathname} initial={{ opacity: 0, y: motionTokens.distance }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: motionTokens.duration.slow, ease: motionTokens.ease }}>
-              <Outlet />
-            </motion.div>
-          </AnimatePresence>
+        <main id="content" className={`content${["dashboard", "architecture", "rule-check", "behavior", "traceability", "leadership", "rules", "dependency-map"].includes(section) ? " wide" : ""}`}>
+          <Outlet />
         </main>
       </div>
       <CommandPalette projectId={projectId} open={palette} onClose={() => setPalette(false)} />

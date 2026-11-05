@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Link, Navigate, Route, Routes } from "react-router-dom";
 import { useAuth } from "./auth";
 import { Skeleton } from "./components/Skeleton";
 import { ArchitecturePage } from "./pages/ArchitecturePage";
@@ -19,7 +19,18 @@ import { RulesPage } from "./pages/RulesPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { TraceabilityPage } from "./pages/TraceabilityPage";
 import { WorkspacePage } from "./pages/WorkspacePage";
+import { EmptyState } from "./components/EmptyState";
 import { AppShell } from "./shell/AppShell";
+
+function NotFound() {
+  return (
+    <main className="content">
+      <EmptyState title="This page is not in the workbench">
+        <Link to="/">Back to the introduction</Link>
+      </EmptyState>
+    </main>
+  );
+}
 
 function RequireAuth() {
   const { user, ready } = useAuth();
@@ -51,7 +62,7 @@ export function App() {
         <Route path="/reports/:projectId?" element={<ReportsPage />} />
         <Route path="/settings/:projectId?" element={<SettingsPage />} />
       </Route>
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }

@@ -84,6 +84,9 @@ function RulesLedger({ projectId, ruleId }: { projectId: string; ruleId?: string
         onSearch={(value) => setFilter("q", value)}
       />
       <p className="muted">Filters stay in the page address, so a report can be reopened with the same narrowing.</p>
+      {rules.state.kind === "ready" && rules.state.data.items.some((row) => row.ruleKey === "BR-B01") && (
+        <p className="callout" role="status">Demonstration for Legacy Billing. These eight rules are the sample's billing rules. Source ranges on the other tab stay this project's stored review matrix.</p>
+      )}
       {rules.state.kind === "loading" && <Skeleton lines={5} />}
       {rules.state.kind === "error" && <ErrorState message={rules.state.message} onRetry={rules.reload} />}
       {rules.state.kind === "disconnected" && <PendingData title="No compliance ledger yet" />}

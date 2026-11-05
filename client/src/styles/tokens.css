@@ -57,70 +57,87 @@
   --neutral-wash: #e9e2d5;
   --neutral-line: #cdc2af;
 
-  /* Typography */
-  --font-display: "Space Grotesk Variable", "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
-  --font-body: "Inter Variable", "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+  /* Typography. IBM Plex only. The opening page keeps a larger display size, still sans. */
+  --font-display: "IBM Plex Sans", "Plex Sans Fallback", "Segoe UI", sans-serif;
+  --font-body: "IBM Plex Sans", "Plex Sans Fallback", "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", "IBM Plex Sans", ui-monospace, monospace;
 
-  --fs-hero: clamp(3rem, 6.6vw, 6rem);
-  --fs-display: clamp(2.25rem, 4.4vw, 3.5rem);
-  --fs-h1: clamp(1.875rem, 2.6vw, 2.5rem);
-  --fs-h2: 1.5rem;
-  --fs-h3: 1.1875rem;
-  --fs-lead: clamp(1.0625rem, 1.3vw, 1.25rem);
-  --fs-body: 1rem;
-  --fs-sm: 0.875rem;
-  --fs-xs: 0.8125rem;
-  --fs-eyebrow: 0.75rem;
+  --fs-hero: clamp(2.5rem, 5vw, 4.25rem);
+  --fs-display: clamp(2rem, 3.4vw, 2.75rem);
+  --fs-h1: 28px;
+  --fs-h2: 18px;
+  --fs-h3: 15px;
+  --fs-lead: 14px;
+  --fs-body: 14px;
+  --fs-sm: 13px;
+  --fs-xs: 13px;
+  --fs-eyebrow: 11.5px;
+  --fs-metric: 32px;
+  --fs-code: 12.5px;
 
-  --lh-tight: 1.02;
-  --lh-heading: 1.12;
-  --lh-body: 1.6;
-  --ls-display: -0.035em;
-  --ls-heading: -0.02em;
-  --ls-eyebrow: 0.14em;
+  --lh-tight: 1.08;
+  --lh-heading: 34px;
+  --lh-h2: 26px;
+  --lh-h3: 22px;
+  --lh-body: 22px;
+  --lh-sm: 20px;
+  --lh-metric: 36px;
+  --ls-display: -0.02em;
+  --ls-heading: -0.01em;
+  --ls-eyebrow: 0.08em;
 
-  /* 8px spacing grid */
+  /* 4px spacing. Existing --space-3 stays 16px so current rules keep their rhythm. */
   --space-1: 4px;
   --space-2: 8px;
+  --space-12: 12px;
   --space-3: 16px;
+  --space-20: 20px;
   --space-4: 24px;
   --space-5: 32px;
   --space-6: 40px;
-  --space-7: 48px;
+  --space-7: 56px;
   --space-8: 64px;
   --space-9: 80px;
   --space-10: 96px;
-  --space-12: 128px;
+
+  --pad-page: 32px;
+  --pad-panel: 20px;
+  --gap-section: 24px;
+  --gap-field: 16px;
 
   /* Radius */
-  --radius-sm: 10px;
-  --radius-md: 16px;
-  --radius-lg: 20px;
-  --radius-xl: 24px;
+  --radius-none: 0;
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 10px;
   --radius-pill: 999px;
+  --radius-full: 50%;
 
   /* Elevation */
-  --shadow-xs: 0 1px 2px rgb(29 27 23 / 0.06);
-  --shadow-sm: 0 1px 2px rgb(29 27 23 / 0.05), 0 4px 12px rgb(29 27 23 / 0.05);
-  --shadow-md: 0 2px 6px rgb(29 27 23 / 0.06), 0 12px 32px rgb(29 27 23 / 0.08);
-  --shadow-lg: 0 8px 24px rgb(16 15 12 / 0.18), 0 32px 80px rgb(16 15 12 / 0.28);
-  --ring-focus: 0 0 0 3px var(--surface), 0 0 0 5px var(--navy);
-  --ring-focus-dark: 0 0 0 3px var(--night-900), 0 0 0 5px var(--gold-soft);
+  --shadow-xs: none;
+  --shadow-sm: none;
+  --shadow-md: 0 8px 24px rgb(22 21 16 / 0.12);
+  --shadow-lg: 0 16px 48px rgb(22 21 16 / 0.18);
+  --overlay: rgb(22 21 16 / 0.45);
+  --ring-focus: 0 0 0 2px var(--surface), 0 0 0 4px var(--navy);
+  --ring-focus-dark: 0 0 0 2px var(--night-900), 0 0 0 4px var(--gold);
 
   /* Motion */
-  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
-  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
-  --dur-fast: 140ms;
-  --dur-base: 220ms;
-  --dur-slow: 360ms;
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+  --ease-in-out: cubic-bezier(0.2, 0, 0, 1);
+  --dur-fast: 120ms;
+  --dur-base: 160ms;
+  --dur-slow: 200ms;
 
   /* Layout */
   --sidebar-width: 264px;
-  --sidebar-collapsed: 76px;
-  --header-height: 68px;
-  --content-max: 1280px;
-  --page-max: 1240px;
+  --sidebar-collapsed: 64px;
+  --header-height: 56px;
+  --content-max: 1200px;
+  --page-max: 1200px;
+  --content-wide: 1440px;
 
   /* Added for modernization workspaces. Existing token values are unchanged. */
   --sage-ink: #4b5f3d;
@@ -130,4 +147,47 @@
   --taupe-ink: #6b5d4c;
   --taupe-wash: #e6ddd0;
   --espresso: #2b1f17;
+  --btn-bg: var(--espresso);
+  --btn-fg: var(--night-text);
+  --btn-border: var(--espresso);
+  --btn-hover: var(--night-800);
+
+  /* Semantic names. They point at the colours already defined above. */
+  --bg-app: var(--bg-canvas);
+  --surface-sunken: var(--bg-sunken);
+  --text-link: var(--navy);
+  --sidebar-bg: var(--night-900);
+  --sidebar-text: var(--night-text-secondary);
+  --sidebar-label: var(--night-text-muted);
+  --sidebar-text-active: var(--night-text);
+  --accent: var(--gold);
+  --accent-ink: var(--gold-ink);
+  --accent-wash: var(--gold-wash);
+  --success: var(--success-ink);
+  --error: var(--danger-ink);
+  --error-wash: var(--danger-wash);
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --bg-canvas: #1a1814;
+  --bg-sunken: #12110e;
+  --surface: #24211c;
+  --surface-raised: #2e2a24;
+  --surface-hover: #38332c;
+  --border: #3d382f;
+  --border-strong: #564d40;
+  --text-primary: #f6f1e7;
+  --text-secondary: #d5cbbd;
+  --text-muted: #b3a894;
+  --text-inverse: #16140f;
+  --navy: #d7e2ee;
+  --navy-600: #f4eee3;
+  --neutral-ink: #e6dccb;
+  --neutral-wash: #2a261f;
+  --neutral-line: #4d453a;
+  --btn-bg: #f4eee3;
+  --btn-fg: #16140f;
+  --btn-border: #f4eee3;
+  --btn-hover: #e6d9c4;
 }

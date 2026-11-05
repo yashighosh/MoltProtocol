@@ -91,13 +91,16 @@ export function ArchitecturePage() {
   return (
     <div className="stack">
       <PageHeader
-        eyebrow="Preview"
+        eyebrow="Demonstration"
         title="Architecture"
         lede="A target architecture grounded in validated intent. Each component should say which legacy modules map into it and why. Static structure is not proof of runtime behavior."
         actions={<button type="button" onClick={() => void generate()}>Generate from validated intent</button>}
       />
       {projectId && <JobStatus projectId={projectId} jobId={jobId} />}
       {actionError && <ErrorState message={actionError} />}
+      {list.state.kind === "ready" && list.state.data.items.some((item) => item.id === "billing-demo-proposal") && (
+        <p className="callout" role="status">Demonstration for Legacy Billing. The proposal follows this ingest: invoice, tax, discount, payment, and the missing rate file. It is not a generated redesign.</p>
+      )}
       {list.state.kind === "loading" && <Skeleton lines={4} />}
       {list.state.kind === "error" && <ErrorState message={list.state.message} onRetry={list.reload} />}
       {list.state.kind === "disconnected" && <PendingData title="No architecture records yet" />}
@@ -229,17 +232,17 @@ function ArchitectureSvg({ detail, selectedKey, onSelect }: { detail: ProposalDe
         if (from < 0 || to < 0) return null;
         const a = boxPoint(from, columns, boxW, boxH);
         const b = boxPoint(to, columns, boxW, boxH);
-        return <line key={link.id} x1={a.x + boxW / 2} y1={a.y + boxH} x2={b.x + boxW / 2} y2={b.y} stroke="#263B50" strokeWidth="1.4" />;
+        return <line key={link.id} x1={a.x + boxW / 2} y1={a.y + boxH} x2={b.x + boxW / 2} y2={b.y} stroke="var(--navy)" strokeWidth="1.4" />;
       })}
       {detail.components.map((component, index) => {
         const point = boxPoint(index, columns, boxW, boxH);
         const modules = detail.mappings.filter((mapping) => mapping.componentId === component.id);
         return (
           <g key={component.id} onClick={() => onSelect(component.componentKey)} style={{ cursor: "pointer" }}>
-            <rect x={point.x} y={point.y} width={boxW} height={boxH} rx="14" fill={selectedKey === component.componentKey ? "#d8e8e8" : "#fbf8f2"} stroke="#263B50" />
-            <text x={point.x + 12} y={point.y + 24} fill="#1d1b17" fontSize="14">{component.name}</text>
-            <text x={point.x + 12} y={point.y + 42} fill="#625a4e" fontSize="11">{component.kind}</text>
-            <text x={point.x + 12} y={point.y + 64} fill="#1f5c60" fontSize="11">{modules.length} legacy modules</text>
+            <rect x={point.x} y={point.y} width={boxW} height={boxH} rx="4" fill={selectedKey === component.componentKey ? "var(--teal-wash)" : "var(--surface)"} stroke="var(--navy)" />
+            <text x={point.x + 12} y={point.y + 24} fill="var(--text-primary)" fontSize="14">{component.name}</text>
+            <text x={point.x + 12} y={point.y + 42} fill="var(--text-muted)" fontSize="11">{component.kind}</text>
+            <text x={point.x + 12} y={point.y + 64} fill="var(--teal-ink)" fontSize="11">{modules.length} legacy modules</text>
           </g>
         );
       })}

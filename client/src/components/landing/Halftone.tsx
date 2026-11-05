@@ -9,7 +9,7 @@ export function Halftone({ kind }: { kind: "inferred" | "validated" | "flagged" 
   }
   return (
     <svg viewBox="0 0 260 160" aria-hidden="true">
-      {dots.map((dot) => <circle key={`${dot.x}-${dot.y}`} cx={dot.x} cy={dot.y} r={dot.r} fill={kind === "flagged" ? "#c9a24a" : "#263b50"} />)}
+      {dots.map((dot) => <circle key={`${dot.x}-${dot.y}`} cx={dot.x} cy={dot.y} r={dot.r} fill={kind === "flagged" ? "var(--gold)" : "var(--navy)"} />)}
     </svg>
   );
 }
