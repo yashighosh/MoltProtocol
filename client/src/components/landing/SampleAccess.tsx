@@ -21,12 +21,12 @@ export function SampleAccess() {
     toast("✓ Copied the demo credential.");
   }
 
-  async function signInAda() {
+  async function signIn(email: string) {
     setBusy(true);
     try {
       const result = await api<{ user: { id: string; email: string; displayName: string; isDemo: boolean; identityLabel: string } }>("/api/v1/auth/login", {
         method: "POST",
-        body: JSON.stringify({ email: "ada.okonkwo@moltprotocol.demo", password: "demo-pass" }),
+        body: JSON.stringify({ email, password: "demo-pass" }),
       });
       setUser(result.user);
       navigate("/dashboard");
@@ -42,7 +42,8 @@ export function SampleAccess() {
           <h2 className="display">Open the sample project</h2>
           <p className="lead">Both accounts are persisted demo identities. The Demo identity label stays on every review. Password for both: demo-pass.</p>
           <div className="row">
-            <button type="button" className="pill" disabled={busy} onClick={() => void signInAda()}>{busy ? "Signing in…" : "Sign in as Ada"}</button>
+            <button type="button" className="pill" disabled={busy} onClick={() => void signIn("ada.okonkwo@moltprotocol.demo")}>{busy ? "Signing in…" : "Sign in as Ada"}</button>
+            <button type="button" className="pill" disabled={busy} onClick={() => void signIn("ravi.shah@moltprotocol.demo")}>{busy ? "Signing in…" : "Sign in as Ravi"}</button>
             <OpenDemoButton />
           </div>
         </div>
