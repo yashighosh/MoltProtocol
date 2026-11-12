@@ -2,6 +2,7 @@ import {
   BadgeCheck, FileSearch, FolderKanban, GitCompare, LayoutDashboard, ListChecks,
   LogOut, Menu, Moon, PanelLeft, Scale, ScrollText, Search, Settings, Share2, Shield, Sun, Upload, Workflow,
 } from "lucide-react";
+import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate, useParams } from "react-router-dom";
 import { api } from "../api";
@@ -11,6 +12,7 @@ import { CommandPalette } from "../components/CommandPalette";
 import { Logo } from "../components/Logo";
 import { NotificationBell, watchProject, type Notice } from "../components/NotificationBell";
 import type { Project } from "../types";
+import { setTravel } from "../travel";
 
 const GROUPS = [
   { label: "Overview", items: [
@@ -165,11 +167,24 @@ export function AppShell() {
               <p>{group.label}</p>
               {group.items.map((item) => {
                 const Icon = item.icon;
+                const to = hrefFor(item.to, projectId);
                 return (
-                  <NavLink key={item.to} className={({ isActive }) => `nav-link${isActive ? " active" : ""}`} to={hrefFor(item.to, projectId)} title={item.label} onClick={() => setMenuOpen(false)}>
-                    <Icon size={16} strokeWidth={1.75} aria-hidden="true" />
-                    <span className="label">{item.label}</span>
-                    {item.tag === "Preview" && <span className="nav-preview">Preview</span>}
+                  <NavLink
+                    key={item.to}
+                    viewTransition
+                    className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}
+                    to={to}
+                    title={item.label}
+                    onClick={() => { setMenuOpen(false); setTravel(location.pathname, to); }}
+                  >
+                    {({ isActive }) => (
+                      <>
+                        {isActive && <motion.span layoutId="nav-marker" className="nav-marker" transition={{ duration: 0.2, ease: "easeOut" }} />}
+                        <Icon size={18} strokeWidth={1.75} aria-hidden="true" />
+                        <span className="label">{item.label}</span>
+                        {item.tag === "Preview" && <span className="nav-preview">Preview</span>}
+                      </>
+                    )}
                   </NavLink>
                 );
               })}
@@ -182,11 +197,11 @@ export function AppShell() {
             <span><strong>{user?.displayName ?? "Signed in"}</strong><span>{user?.identityLabel ?? "Demo identity"}</span></span>
           </p>
           <button type="button" className="side-action" aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"} title={collapsed ? "Expand sidebar" : "Collapse sidebar"} onClick={toggleSidebar}>
-            <PanelLeft size={16} strokeWidth={1.75} aria-hidden="true" />
+            <PanelLeft size={18} strokeWidth={1.75} aria-hidden="true" />
             <span>{collapsed ? "Expand" : "Collapse"}</span>
           </button>
           <button type="button" className="side-action" aria-label="Sign out" title="Sign out" onClick={() => void signOut()}>
-            <LogOut size={16} strokeWidth={1.75} aria-hidden="true" />
+            <LogOut size={18} strokeWidth={1.75} aria-hidden="true" />
             <span>Sign out</span>
           </button>
         </div>
@@ -202,7 +217,9 @@ export function AppShell() {
             <select id="project-switch" className="chrome-control" aria-label="Project" value={projectId ?? ""} onChange={(event) => {
               const next = event.target.value;
               const base = `/${section}`;
-              navigate(next ? hrefFor(base, next) : base);
+              const to = next ? hrefFor(base, next) : base;
+              setTravel(location.pathname, to);
+              navigate(to, { viewTransition: true });
             }}>
               <option value="">No project selected</option>
               {projects.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
