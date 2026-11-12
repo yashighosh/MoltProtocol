@@ -58,9 +58,68 @@ export function LoginForm({
   );
 }
 
+function RegisterForm({
+  busy,
+  error,
+  onSubmit,
+}: {
+  busy: boolean;
+  error: string;
+  onSubmit: (name: string, email: string, password: string) => void;
+}) {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [localError, setLocalError] = useState("");
+
+  function submit(event: React.FormEvent) {
+    event.preventDefault();
+    if (!name.trim() || !email.trim() || !password) {
+      setLocalError("Enter your name, email, and password.");
+      return;
+    }
+    if (password.length < 8) {
+      setLocalError("Use at least 8 characters.");
+      return;
+    }
+    if (password !== confirm) {
+      setLocalError("The two passwords do not match.");
+      return;
+    }
+    setLocalError("");
+    onSubmit(name.trim(), email.trim(), password);
+  }
+
+  return (
+    <form className="login-form" onSubmit={submit}>
+      <label>
+        Name
+        <input name="name" type="text" autoComplete="name" placeholder="Name" value={name} onChange={(event) => setName(event.target.value)} />
+      </label>
+      <label>
+        Email
+        <input name="email" type="email" autoComplete="username" placeholder="Email" value={email} onChange={(event) => setEmail(event.target.value)} />
+      </label>
+      <label>
+        Password
+        <input name="password" type="password" autoComplete="new-password" placeholder="Password" value={password} onChange={(event) => setPassword(event.target.value)} />
+      </label>
+      <label>
+        Confirm password
+        <input name="confirm" type="password" autoComplete="new-password" placeholder="Confirm password" value={confirm} onChange={(event) => setConfirm(event.target.value)} />
+      </label>
+      {(localError || error) && <p className="field-error" role="alert">{localError || error}</p>}
+      <button type="submit" disabled={busy}>{busy ? "Creating account…" : "Create account"}</button>
+      <p className="login-note">This account is stored in the project database. Your name is what reviews will show.</p>
+    </form>
+  );
+}
+
 export function LoginPage() {
   const navigate = useNavigate();
   const { setUser } = useAuth();
+  const [mode, setMode] = useState<"sign-in" | "create">("sign-in");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -78,6 +137,25 @@ export function LoginPage() {
     }
   }
 
+  async function onCreate(name: string, email: string, password: string) {
+    setBusy(true);
+    setError("");
+    try {
+      const result = await api<{ user: SessionUser }>("/api/v1/auth/register", { method: "POST", body: JSON.stringify({ name, email, password }) });
+      setUser(result.user);
+      navigate("/dashboard");
+    } catch (reason) {
+      setError(reason instanceof ApiError ? reason.message : "The account could not be created.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function switchMode(next: "sign-in" | "create") {
+    setMode(next);
+    setError("");
+  }
+
   return (
     <div className="login-stage">
       <div className="login-frame">
@@ -86,9 +164,17 @@ export function LoginPage() {
             <Logo size={32} />
             <Link to="/">Back to the introduction</Link>
           </header>
-          <h1>Sign in</h1>
-          <p className="lead">Sign in before the codebase is treated as understood.</p>
-          <LoginForm busy={busy} error={error} onSubmit={(email, password) => void onSubmit(email, password)} />
+          <h1>{mode === "create" ? "Create account" : "Sign in"}</h1>
+          <p className="lead">{mode === "create" ? "Create an account before the codebase is treated as understood." : "Sign in before the codebase is treated as understood."}</p>
+          {mode === "create"
+            ? <RegisterForm busy={busy} error={error} onSubmit={(name, email, password) => void onCreate(name, email, password)} />
+            : <LoginForm busy={busy} error={error} onSubmit={(email, password) => void onSubmit(email, password)} />}
+          <p className="login-switch">
+            {mode === "create" ? "Already have an account?" : "New here?"}
+            <button type="button" className="text-btn" onClick={() => switchMode(mode === "create" ? "sign-in" : "create")}>
+              {mode === "create" ? "Sign in" : "Create account"}
+            </button>
+          </p>
         </section>
         <aside className="login-visual" aria-hidden="true">
           <svg viewBox="0 0 560 640">
