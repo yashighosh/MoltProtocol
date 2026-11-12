@@ -1,9 +1,20 @@
 import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { DatabaseSync, type SQLInputValue } from "node:sqlite";
+import { MessageChannel, Worker, receiveMessageOnPort } from "node:worker_threads";
 import { hashPassword } from "./passwords.js";
+import { adaptSql, normalizeRow } from "./sqlAdapt.js";
 
-export type AppDatabase = DatabaseSync;
+export type PostgresDatabase = {
+  dialect: "postgres";
+  query(sql: string, params: unknown[]): Record<string, unknown>[];
+};
+
+export type AppDatabase = DatabaseSync | PostgresDatabase;
+
+export function isPostgres(db: AppDatabase): db is PostgresDatabase {
+  return "dialect" in db && db.dialect === "postgres";
+}
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS users (
@@ -159,7 +170,7 @@ CREATE TABLE IF NOT EXISTS jobs (
 );
 `;
 
-export function openDatabase(filePath: string): AppDatabase {
+export function openDatabase(filePath: string): DatabaseSync {
   if (filePath !== ":memory:") {
     mkdirSync(path.dirname(filePath), { recursive: true });
   }
@@ -170,26 +181,97 @@ export function openDatabase(filePath: string): AppDatabase {
   return db;
 }
 
-function seedUsers(db: AppDatabase) {
+const DEMO_USERS = [
+  ["user-ada", "ada.okonkwo@moltprotocol.demo", "Ada Okonkwo"],
+  ["user-ravi", "ravi.shah@moltprotocol.demo", "Ravi Shah"],
+] as const;
+
+function seedUsers(db: DatabaseSync) {
   const row = db.prepare("SELECT COUNT(*) AS n FROM users").get() as { n: number };
   if (row.n > 0) return;
   const now = new Date().toISOString();
   const insert = db.prepare(
     "INSERT INTO users (id, email, display_name, password_hash, is_demo, created_at) VALUES (?, ?, ?, ?, 1, ?)",
   );
-  insert.run("user-ada", "ada.okonkwo@moltprotocol.demo", "Ada Okonkwo", hashPassword("demo-pass"), now);
-  insert.run("user-ravi", "ravi.shah@moltprotocol.demo", "Ravi Shah", hashPassword("demo-pass"), now);
+  for (const [id, email, name] of DEMO_USERS) insert.run(id, email, name, hashPassword("demo-pass"), now);
+}
+
+function seedPostgres(db: PostgresDatabase) {
+  run(
+    db,
+    `CREATE TABLE IF NOT EXISTS demo_rule_decisions (
+      id text PRIMARY KEY,
+      project_id text NOT NULL,
+      rule_id text NOT NULL,
+      status text NOT NULL,
+      justification text,
+      decided_by text,
+      decided_at timestamptz NOT NULL
+    )`,
+  );
+  const row = one<{ n: number }>(db, "SELECT COUNT(*) AS n FROM users");
+  if ((row?.n ?? 0) > 0) return;
+  const now = new Date().toISOString();
+  for (const [id, email, name] of DEMO_USERS) {
+    run(
+      db,
+      "INSERT INTO users (id, email, display_name, password_hash, is_demo, created_at) VALUES (?, ?, ?, ?, 1, ?)",
+      id, email, name, hashPassword("demo-pass"), now,
+    );
+  }
+}
+
+export function openPostgres(connectionString: string): PostgresDatabase {
+  const worker = new Worker(new URL("./pgWorker.mjs", import.meta.url));
+  const lock = new Int32Array(new SharedArrayBuffer(4));
+  let workerError: Error | undefined;
+  worker.on("error", (error) => {
+    workerError = error;
+    Atomics.store(lock, 0, 1);
+    Atomics.notify(lock, 0);
+  });
+  const call = (message: Record<string, unknown>) => {
+    const channel = new MessageChannel();
+    Atomics.store(lock, 0, 0);
+    worker.postMessage({ ...message, port: channel.port2, lock: lock.buffer }, [channel.port2]);
+    const status = Atomics.wait(lock, 0, 0, 30_000);
+    if (workerError) throw workerError;
+    if (status === "timed-out") throw new Error("Timed out waiting for PostgreSQL");
+    const received = receiveMessageOnPort(channel.port1);
+    if (!received) throw new Error("PostgreSQL worker returned no result");
+    const body = received.message as { error?: string; rows?: Record<string, unknown>[] };
+    if (body.error) throw new Error(body.error);
+    return (body.rows ?? []).map((row) => normalizeRow(row));
+  };
+  const db: PostgresDatabase = {
+    dialect: "postgres",
+    query(sql, params) {
+      return call({ type: "query", sql, params: params.map((value) => (value === undefined ? null : value)) });
+    },
+  };
+  try {
+    call({ type: "connect", connectionString });
+  } catch (error) {
+    void worker.terminate();
+    const message = error instanceof Error ? error.message : "connection failed";
+    throw new Error(`Could not open the PostgreSQL database from my_database (${connectionString.replace(/:[^:@/]+@/, ":***@")}). ${message}`);
+  }
+  seedPostgres(db);
+  return db;
 }
 
 export function all<T extends object>(db: AppDatabase, sql: string, ...params: SQLInputValue[]): T[] {
+  if (isPostgres(db)) return db.query(adaptSql(sql), params) as T[];
   return db.prepare(sql).all(...params).map((row) => ({ ...(row as object) })) as T[];
 }
 
 export function one<T extends object>(db: AppDatabase, sql: string, ...params: SQLInputValue[]): T | undefined {
+  if (isPostgres(db)) return db.query(adaptSql(sql), params)[0] as T | undefined;
   const row = db.prepare(sql).get(...params);
   return row ? ({ ...(row as object) } as T) : undefined;
 }
 
 export function run(db: AppDatabase, sql: string, ...params: SQLInputValue[]) {
+  if (isPostgres(db)) return db.query(adaptSql(sql), params);
   return db.prepare(sql).run(...params);
 }
