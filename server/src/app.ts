@@ -3,8 +3,8 @@ import express, { type NextFunction, type Request, type Response } from "express
 import { existsSync } from "node:fs";
 import path from "node:path";
 import multer from "multer";
-import { randomUUID } from "node:crypto";
-import { all, one, run, type AppDatabase } from "./db.js";
+import { createHash, randomUUID } from "node:crypto";
+import { all, isPostgres, one, run, type AppDatabase } from "./db.js";
 import { buildGraphSvg, buildPdf } from "./export/graphExport.js";
 import { errorBody, HttpError } from "./http.js";
 import { verifyPassword } from "./passwords.js";
@@ -57,14 +57,32 @@ function tokenFrom(req: Request): string | undefined {
   return typeof cookie === "string" ? cookie : undefined;
 }
 
+function storedSession(db: AppDatabase, token: string): string {
+  return isPostgres(db) ? createHash("sha256").update(token).digest("hex") : token;
+}
+
+function startSession(db: AppDatabase, res: Response, user: UserRow, status = 200) {
+  const token = randomUUID();
+  const created = new Date();
+  const expires = new Date(created.getTime() + 7 * 24 * 3600 * 1000);
+  if (isPostgres(db)) {
+    run(db, "INSERT INTO sessions (id, user_id, token_hash, created_at, expires_at) VALUES (?, ?, ?, ?, ?)", randomUUID(), user.id, storedSession(db, token), created.toISOString(), expires.toISOString());
+  } else {
+    run(db, "INSERT INTO sessions (token, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)", token, user.id, created.toISOString(), expires.toISOString());
+  }
+  res.cookie("molt_session", token, { httpOnly: true, sameSite: "lax", path: "/", maxAge: 7 * 24 * 3600 * 1000 });
+  res.status(status).json({ token, user: publicUser(user) });
+}
+
 function userFrom(db: AppDatabase, req: Request): UserRow | undefined {
   const token = tokenFrom(req);
   if (!token) return undefined;
+  const column = isPostgres(db) ? "token_hash" : "token";
   return one<UserRow>(
     db,
     `SELECT u.* FROM sessions s JOIN users u ON u.id = s.user_id
-     WHERE s.token = ? AND s.expires_at > ?`,
-    token,
+     WHERE s.${column} = ? AND s.expires_at > ?`,
+    storedSession(db, token),
     new Date().toISOString(),
   );
 }
@@ -80,7 +98,7 @@ export function createApp(db: AppDatabase, options: { maxUploadBytes?: number } 
   app.use(cookieParser());
 
   app.get("/api/v1/health", (_req, res) => {
-    res.json({ ok: true, service: "moltprotocol", demonstrationMode: process.env.MOLT_LLM_ENABLED !== "true" });
+    res.json({ ok: true, service: "moltprotocol", database: isPostgres(db) ? "postgres" : "sqlite", demonstrationMode: process.env.MOLT_LLM_ENABLED !== "true" });
   });
 
   app.post("/api/v1/auth/login", (req, res, next) => {
@@ -98,12 +116,7 @@ export function createApp(db: AppDatabase, options: { maxUploadBytes?: number } 
       if (!verifyPassword(password, user.password_hash)) {
         throw new HttpError(401, "BAD_PASSWORD", "Password does not match this demo identity.");
       }
-      const token = randomUUID();
-      const created = new Date();
-      const expires = new Date(created.getTime() + 7 * 24 * 3600 * 1000);
-      run(db, "INSERT INTO sessions (token, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)", token, user.id, created.toISOString(), expires.toISOString());
-      res.cookie("molt_session", token, { httpOnly: true, sameSite: "lax", path: "/", maxAge: 7 * 24 * 3600 * 1000 });
-      res.json({ token, user: publicUser(user) });
+      startSession(db, res, user);
     } catch (error) {
       next(error);
     }
@@ -111,7 +124,7 @@ export function createApp(db: AppDatabase, options: { maxUploadBytes?: number } 
 
   app.post("/api/v1/auth/logout", (req, res) => {
     const token = tokenFrom(req);
-    if (token) run(db, "DELETE FROM sessions WHERE token = ?", token);
+    if (token) run(db, `DELETE FROM sessions WHERE ${isPostgres(db) ? "token_hash" : "token"} = ?`, storedSession(db, token));
     res.clearCookie("molt_session", { path: "/" });
     res.json({ ok: true });
   });
