@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api } from "../api";
 import { CountUp } from "../components/CountUp";
-import { OpenDemoButton } from "../components/DemoActions";
 import { ErrorState } from "../components/ErrorState";
 import { Skeleton } from "../components/Skeleton";
 import { StatusBadge } from "../components/StatusBadge";
@@ -118,7 +117,7 @@ export function DashboardPage() {
           </div>
           <div className="row">
             {data.demonstration && <span className="demo-flag">Demonstration</span>}
-            {data.nextAction.to ? <Link className="button" to={data.nextAction.to}>{data.nextAction.label}</Link> : <OpenDemoButton />}
+            {data.nextAction.to ? <Link className="button" to={data.nextAction.to}>{data.nextAction.label}</Link> : <Link className="button" to="/workspace">View projects</Link>}
           </div>
         </div>
         {selected && data.projectId && <p className="board-id mono">{data.projectId}</p>}
@@ -132,7 +131,7 @@ export function DashboardPage() {
             ))}
           </div>
         ) : (
-          <p className="muted">Open the demonstration project to load the bundled sample. Ingest, the map, summaries, a confirm, a correction, and discrepancy detection run from that record.</p>
+          <p className="muted">Choose a project from the list, or start one from Ingest.</p>
         )}
       </section>
 

@@ -18,6 +18,7 @@ describe("LoginForm", () => {
     expect(onSubmit).toHaveBeenCalledWith("ada.okonkwo@moltprotocol.demo", "wrong");
     rerender(<MemoryRouter><LoginForm busy={false} error="Password does not match this demo identity." onSubmit={onSubmit} /></MemoryRouter>);
     expect(screen.getByRole("alert").textContent).toMatch(/Password does not match/);
-    expect(screen.getByText(/Demo sign-in/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Use Ada Okonkwo/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Use Ravi Shah/ })).not.toBeInTheDocument();
   });
 });

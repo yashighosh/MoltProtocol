@@ -22,6 +22,19 @@ describe("sprint 1 API", () => {
     expect(unknown.body.error.code).toBe("UNKNOWN_IDENTITY");
   });
 
+  it("creates a non-demo account and signs that person in", async () => {
+    const db = openDatabase(":memory:");
+    const { app } = createApp(db);
+    const created = await request(app).post("/api/v1/auth/register").send({ name: "Mina Cole", email: "Mina.Cole@example.com", password: "working-pass" });
+    expect(created.status).toBe(201);
+    expect(created.body.user).toMatchObject({ email: "mina.cole@example.com", displayName: "Mina Cole", isDemo: false, identityLabel: "Signed-in identity" });
+    const again = await request(app).post("/api/v1/auth/register").send({ name: "Mina Cole", email: "mina.cole@example.com", password: "working-pass" });
+    expect(again.status).toBe(409);
+    const login = await request(app).post("/api/v1/auth/login").send({ email: "mina.cole@example.com", password: "working-pass" });
+    expect(login.status).toBe(200);
+    expect(login.body.user.id).toBe(created.body.user.id);
+  });
+
   it("rejects private git targets and traversal archives", async () => {
     const { app, token, done } = await signedIn();
     const git = await request(app).post("/api/v1/projects/git").set("Authorization", `Bearer ${token}`).send({ name: "Bad", url: "https://127.0.0.1/secret.git" });

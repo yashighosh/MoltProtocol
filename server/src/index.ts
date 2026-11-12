@@ -1,10 +1,9 @@
 import path from "node:path";
-import { openDatabase } from "./db.js";
+import { openDatabase, openPostgres } from "./db.js";
 import { createApp } from "./app.js";
-import { repositoryRoot } from "./pipeline.js";
 
-const databasePath = process.env.MOLT_DB_PATH || path.join(repositoryRoot(), "data", "molt.sqlite");
-const db = openDatabase(databasePath);
+const postgresUrl = process.env.DATABASE_URL || "postgres://postgres:molt@127.0.0.1:55432/molt";
+const db = process.env.MOLT_DB_PATH ? openDatabase(path.resolve(process.env.MOLT_DB_PATH)) : openPostgres(postgresUrl);
 const { app } = createApp(db);
 const port = Number(process.env.PORT || 4000);
 

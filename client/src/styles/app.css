@@ -142,7 +142,8 @@ html[data-theme="dark"] .avatar { color: var(--espresso); }
   .login-visual { order: -1; min-height: 220px; padding: 16px; }
   .login-visual svg { height: 160px; width: auto; margin-block: 0; }
 }
-.login-note, .login-credentials { color: var(--text-secondary); font-size: var(--fs-sm); text-align: left; }
+.login-note, .login-credentials, .login-switch { color: var(--text-secondary); font-size: var(--fs-sm); text-align: left; }
+.login-switch { display: flex; justify-content: center; align-items: center; gap: 8px; }
 .login-assist { display: flex; justify-content: center; gap: 18px; flex-wrap: wrap; }
 .login-stage .text-btn {
   background: transparent; color: var(--text-link); border: 0; border-radius: var(--radius-none);

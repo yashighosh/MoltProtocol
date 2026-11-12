@@ -1,5 +1,5 @@
 import { rmSync } from "node:fs";
-import { one, run, type AppDatabase } from "./db.js";
+import { isPostgres, one, run, type AppDatabase } from "./db.js";
 import { HttpError } from "./http.js";
 import {
   DEMO_SOURCE_REF,
@@ -106,15 +106,21 @@ export function openDemoProject(db: AppDatabase, userId: string) {
 }
 
 function deleteProjectRows(db: AppDatabase, projectId: string) {
-  run(db, "DELETE FROM jobs WHERE project_id = ?", projectId);
-  run(db, "DELETE FROM discrepancies WHERE project_id = ?", projectId);
-  run(db, "DELETE FROM intent_revisions WHERE summary_id IN (SELECT id FROM intent_summaries WHERE project_id = ?)", projectId);
-  run(db, "DELETE FROM intent_summaries WHERE project_id = ?", projectId);
-  run(db, "DELETE FROM dependency_edges WHERE project_id = ?", projectId);
-  run(db, "DELETE FROM modules WHERE project_id = ?", projectId);
-  run(db, "DELETE FROM ingested_files WHERE project_id = ?", projectId);
-  run(db, "DELETE FROM ingestion_events WHERE project_id = ?", projectId);
-  run(db, "DELETE FROM projects WHERE id = ?", projectId);
+  if (isPostgres(db)) run(db, "ALTER TABLE intent_revisions DISABLE TRIGGER intent_revisions_immutable");
+  try {
+    if (isPostgres(db)) run(db, "UPDATE intent_summaries SET current_revision_id = NULL WHERE project_id = ?", projectId);
+    run(db, "DELETE FROM jobs WHERE project_id = ?", projectId);
+    run(db, "DELETE FROM discrepancies WHERE project_id = ?", projectId);
+    run(db, "DELETE FROM intent_revisions WHERE summary_id IN (SELECT id FROM intent_summaries WHERE project_id = ?)", projectId);
+    run(db, "DELETE FROM intent_summaries WHERE project_id = ?", projectId);
+    run(db, "DELETE FROM dependency_edges WHERE project_id = ?", projectId);
+    run(db, "DELETE FROM modules WHERE project_id = ?", projectId);
+    run(db, "DELETE FROM ingested_files WHERE project_id = ?", projectId);
+    run(db, "DELETE FROM ingestion_events WHERE project_id = ?", projectId);
+    run(db, "DELETE FROM projects WHERE id = ?", projectId);
+  } finally {
+    if (isPostgres(db)) run(db, "ALTER TABLE intent_revisions ENABLE TRIGGER intent_revisions_immutable");
+  }
 }
 
 async function resetInner(db: AppDatabase) {
