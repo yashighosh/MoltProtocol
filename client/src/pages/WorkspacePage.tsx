@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { api } from "../api";
 import { ResetDemoButton } from "../components/DemoActions";
 import { EmptyState } from "../components/EmptyState";
@@ -7,8 +7,9 @@ import { ErrorState } from "../components/ErrorState";
 import { PageHeader } from "../components/PageHeader";
 import { Skeleton } from "../components/Skeleton";
 import type { GraphEdge, GraphNode, Project } from "../types";
+import { armSharedGraph, setTravel } from "../travel";
 
-function MiniMap({ projectId, enabled }: { projectId: string; enabled: boolean }) {
+function MiniMap({ projectId, enabled, shared }: { projectId: string; enabled: boolean; shared: boolean }) {
   const [nodes, setNodes] = useState<GraphNode[]>([]);
   const [edges, setEdges] = useState<GraphEdge[]>([]);
   useEffect(() => {
@@ -18,9 +19,10 @@ function MiniMap({ projectId, enabled }: { projectId: string; enabled: boolean }
       setEdges(result.edges);
     }).catch(() => undefined);
   }, [projectId, enabled]);
-  if (!enabled || nodes.length === 0) return <div className="mini-map" aria-hidden="true" />;
+  const shareStyle = shared ? { viewTransitionName: "project-graph" } : undefined;
+  if (!enabled || nodes.length === 0) return <div className="mini-map" style={shareStyle} aria-hidden="true" />;
   return (
-    <svg className="mini-map" viewBox="0 0 220 92" aria-hidden="true">
+    <svg className="mini-map" style={shareStyle} viewBox="0 0 220 92" aria-hidden="true">
       {edges.slice(0, 10).map((edge) => {
         const from = nodes.findIndex((node) => node.id === edge.from);
         const to = nodes.findIndex((node) => node.id === edge.to);
@@ -33,8 +35,10 @@ function MiniMap({ projectId, enabled }: { projectId: string; enabled: boolean }
 }
 
 export function WorkspacePage() {
+  const location = useLocation();
   const [projects, setProjects] = useState<Project[] | null>(null);
   const [error, setError] = useState("");
+  const [sharedId, setSharedId] = useState("");
 
   function load() {
     api<{ projects: Project[] }>("/api/v1/projects").then((result) => setProjects(result.projects)).catch((reason: Error) => setError(reason.message));
@@ -45,11 +49,11 @@ export function WorkspacePage() {
   const flagged = projects?.reduce((sum, project) => sum + project.summary.rejectedCount, 0) ?? 0;
 
   return (
-    <div className="stack">
+    <div className="stack reveal-stagger">
       <PageHeader
         title="Projects"
         lede="Each analysis is one project. Ingestion, the dependency map, intent, review and discrepancies share that identifier."
-        actions={<Link className="button" to="/ingestion">New project</Link>}
+        actions={<Link viewTransition className="button" to="/ingestion" onClick={() => setTravel(location.pathname, "/ingestion")}>New project</Link>}
       />
       {error && <ErrorState message={error} onRetry={load} />}
       {!projects && !error && <Skeleton />}
@@ -73,8 +77,17 @@ export function WorkspacePage() {
           ];
           const done = stages.filter((stage) => stage.done).length;
           return (
-            <article key={project.id} className="card project-card">
-              <MiniMap projectId={project.id} enabled={project.analysisStatus === "complete"} />
+            <article key={project.id} className="card project-card" tabIndex={0}>
+              <Link
+                viewTransition
+                className="mini-map-link"
+                to={`/dependency-map/${project.id}`}
+                aria-label={`Open the dependency map for ${project.name}`}
+                onPointerDown={() => setSharedId(project.id)}
+                onClick={() => { armSharedGraph(project.id); setTravel(location.pathname, `/dependency-map/${project.id}`); }}
+              >
+                <MiniMap projectId={project.id} enabled={project.analysisStatus === "complete"} shared={sharedId === project.id} />
+              </Link>
               <div className="stack project-body">
                 <div className="project-title">
                   <h2>{project.name}</h2>
@@ -84,7 +97,7 @@ export function WorkspacePage() {
                 <div className="stage-row">
                   {stages.map((stage) => (
                     <span key={stage.label} className={stage.done ? "done" : ""}>
-                      <i className="stage-pip" />
+                      <i className="stage-check" />
                       {stage.label}
                     </span>
                   ))}
@@ -92,7 +105,7 @@ export function WorkspacePage() {
                 <div className="stage-bar" aria-hidden="true"><span style={{ width: `${(done / stages.length) * 100}%` }} /></div>
                 <p className="muted">{done} of {stages.length} stages complete{project.discrepancyStatus === "blocked" ? ". Compare needs attention" : ""}.</p>
                 <div className="row">
-                  <Link className="button" to={`/dashboard/${project.id}`}>Open</Link>
+                  <Link viewTransition className="button" to={`/dashboard/${project.id}`} onClick={() => setTravel(location.pathname, `/dashboard/${project.id}`)}>Open</Link>
                   {project.demonstration && <ResetDemoButton onReset={load} />}
                 </div>
               </div>
