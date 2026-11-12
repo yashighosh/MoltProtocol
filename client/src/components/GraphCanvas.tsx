@@ -8,10 +8,17 @@ type Props = {
   edges: GraphEdge[];
   selectedId: string | null;
   onSelect: (id: string) => void;
+  shared?: boolean;
 };
 
 function unresolvedNode(node: GraphNode) {
   return node.resolution === "unresolved" || node.name.startsWith("missing:");
+}
+
+function nodeWidth(node: GraphNode) {
+  const shortName = (node.name.split("/").pop() ?? node.name).replace(/^missing:/, "");
+  const label = (unresolvedNode(node) ? `${shortName} (missing)` : shortName).slice(0, 32);
+  return Math.max(128, Math.min(220, label.length * 7.2 + 32));
 }
 
 function layout(nodes: GraphNode[], edges: GraphEdge[]) {
@@ -78,7 +85,7 @@ function fitOf(positions: Map<string, { x: number; y: number }>) {
   };
 }
 
-export function GraphCanvas({ projectId, nodes, edges, selectedId, onSelect }: Props) {
+export function GraphCanvas({ projectId, nodes, edges, selectedId, onSelect, shared = false }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [scale, setScale] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -169,7 +176,7 @@ export function GraphCanvas({ projectId, nodes, edges, selectedId, onSelect }: P
         <span><i className="legend-line dashed" /> Unresolved relationship</span>
       </div>
       {nodes.length > 24 && directory !== "all" && <p className="map-note">Showing the {directory} cluster so the map stays readable. Choose All directories to expand it.</p>}
-      <div className="graph-wrap">
+      <div className="graph-wrap" style={shared ? { viewTransitionName: "project-graph" } : undefined}>
         <svg
           ref={svgRef}
           viewBox="0 0 1100 720"
@@ -198,13 +205,19 @@ export function GraphCanvas({ projectId, nodes, edges, selectedId, onSelect }: P
             {visibleEdges.map((edge) => {
               const from = positions.get(edge.from);
               const to = positions.get(edge.to);
-              if (!from || !to) return null;
+              const fromNode = visibleNodes.find((node) => node.id === edge.from);
+              const toNode = visibleNodes.find((node) => node.id === edge.to);
+              if (!from || !to || !fromNode || !toNode) return null;
               const confirmed = edge.resolution === "confirmed";
               const highlighted = edge.from === selectedId || edge.to === selectedId;
+              const forward = to.x >= from.x;
+              const x1 = from.x + (forward ? nodeWidth(fromNode) / 2 : -nodeWidth(fromNode) / 2);
+              const x2 = to.x + (forward ? -nodeWidth(toNode) / 2 : nodeWidth(toNode) / 2);
               return (
-                <line
+                <path
                   key={edge.id}
-                  x1={from.x} y1={from.y} x2={to.x} y2={to.y}
+                  d={`M ${x1} ${from.y} L ${x2} ${to.y}`}
+                  pathLength={1}
                   strokeWidth={highlighted ? 1.6 : 1.15}
                   className={`${confirmed ? "edge-confirmed" : "edge-unresolved"}${highlighted ? " hot" : ""}`}
                 />
@@ -217,7 +230,7 @@ export function GraphCanvas({ projectId, nodes, edges, selectedId, onSelect }: P
               const unresolved = unresolvedNode(node);
               const shortName = (node.name.split("/").pop() ?? node.name).replace(/^missing:/, "");
               const label = (unresolved ? `${shortName} (missing)` : shortName).slice(0, 32);
-              const width = Math.max(128, Math.min(220, label.length * 7.2 + 32));
+              const width = nodeWidth(node);
               return (
                 <g
                   key={node.id}
@@ -235,10 +248,12 @@ export function GraphCanvas({ projectId, nodes, edges, selectedId, onSelect }: P
                     }
                   }}
                 >
-                  <rect x={-width / 2} y={-18} width={width} height="36" rx="4" fill="var(--surface-raised)" stroke={unresolved ? "var(--danger-ink)" : "var(--border-strong)"} strokeDasharray={unresolved ? "5 4" : undefined} />
-                  <text x="0" y="5" textAnchor="middle" fontFamily="IBM Plex Mono, monospace" fontSize="12" fill={unresolved ? "var(--danger-ink)" : "var(--text-primary)"}>
-                    {label}
-                  </text>
+                  <g className="graph-node-in">
+                    <rect x={-width / 2} y={-18} width={width} height="36" rx="8" fill="var(--surface-raised)" stroke={unresolved ? "var(--danger-line)" : "var(--border-strong)"} strokeDasharray={unresolved ? "5 4" : undefined} />
+                    <text x="0" y="5" textAnchor="middle" fontFamily="IBM Plex Mono, monospace" fontSize="12" fill={unresolved ? "var(--danger-line)" : "var(--text-primary)"}>
+                      {label}
+                    </text>
+                  </g>
                 </g>
               );
             })}
