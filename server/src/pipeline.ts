@@ -316,7 +316,7 @@ function insertFile(db: AppDatabase, projectId: string, file: { path: string; by
       reason = "File is empty.";
     }
   }
-  const stored = text && text.length <= 100_000 ? text : null;
+  const stored = status === "parsed" ? (text ?? "") : (text && text.length <= 100_000 ? text : null);
   run(
     db,
     "INSERT INTO ingested_files (id, project_id, path, language, loc, status, rejection_reason, content_hash, source_text) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
