@@ -9,7 +9,6 @@ export function LandingFooter() {
           <a href="#product">Product</a>
           <a href="#method">Method</a>
           <a href="#features">Features</a>
-          <a href="#try">Try it</a>
           <a href="/login">Sign in</a>
         </nav>
         <p>Modernize with the business logic intact.</p>
