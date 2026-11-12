@@ -1,13 +1,3 @@
-import {
-  forceCollide,
-  forceLink,
-  forceManyBody,
-  forceSimulation,
-  forceX,
-  forceY,
-  type SimulationLinkDatum,
-  type SimulationNodeDatum,
-} from "d3-force";
 import { jsPDF } from "jspdf";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { GraphEdge, GraphNode } from "../types";
@@ -20,46 +10,53 @@ type Props = {
   onSelect: (id: string) => void;
 };
 
-type SimNode = SimulationNodeDatum & GraphNode;
-
 function unresolvedNode(node: GraphNode) {
   return node.resolution === "unresolved" || node.name.startsWith("missing:");
 }
 
 function layout(nodes: GraphNode[], edges: GraphEdge[]) {
-  const groups = new Map<string, GraphNode[]>();
+  const ids = new Set(nodes.map((node) => node.id));
+  const outgoing = new Map<string, string[]>();
+  const incoming = new Map<string, number>();
   for (const node of nodes) {
-    const key = unresolvedNode(node) ? "Unresolved" : (node.directory || "(root)");
-    const list = groups.get(key) ?? [];
+    outgoing.set(node.id, []);
+    incoming.set(node.id, 0);
+  }
+  for (const edge of edges) {
+    if (!ids.has(edge.from) || !ids.has(edge.to) || edge.from === edge.to) continue;
+    outgoing.get(edge.from)?.push(edge.to);
+    incoming.set(edge.to, (incoming.get(edge.to) ?? 0) + 1);
+  }
+  const depth = new Map<string, number>();
+  const queue = nodes.filter((node) => (incoming.get(node.id) ?? 0) === 0).map((node) => node.id);
+  for (const id of queue) depth.set(id, 0);
+  const pending = [...queue];
+  const seen = new Set<string>();
+  while (pending.length > 0) {
+    const id = pending.shift() ?? "";
+    if (seen.has(id)) continue;
+    seen.add(id);
+    for (const next of outgoing.get(id) ?? []) {
+      const nextDepth = (depth.get(id) ?? 0) + (nodes.find((node) => node.id === next && unresolvedNode(node)) ? 0 : 1);
+      if ((depth.get(next) ?? -1) < nextDepth) depth.set(next, nextDepth);
+      pending.push(next);
+    }
+  }
+  for (const node of nodes) if (!depth.has(node.id)) depth.set(node.id, unresolvedNode(node) ? 1 : 0);
+  const columns = new Map<number, GraphNode[]>();
+  for (const node of [...nodes].sort((left, right) => left.name.localeCompare(right.name))) {
+    const column = depth.get(node.id) ?? 0;
+    const list = columns.get(column) ?? [];
     list.push(node);
-    groups.set(key, list);
+    columns.set(column, list);
   }
-  const keys = [...groups.keys()].filter((key) => key !== "Unresolved").sort();
-  if (groups.has("Unresolved")) keys.push("Unresolved");
-  for (const key of keys) groups.get(key)!.sort((left, right) => left.name.localeCompare(right.name));
-
-  const simNodes: SimNode[] = [];
-  keys.forEach((key, column) => {
-    groups.get(key)!.forEach((node, row) => {
-      const x = 160 + column * 220;
-      simNodes.push({ ...node, x, y: 88 + row * 76, fx: x });
-    });
-  });
-  if (simNodes.length > 1) {
-    const ids = new Set(simNodes.map((node) => node.id));
-    const links: SimulationLinkDatum<SimNode>[] = edges
-      .filter((edge) => ids.has(edge.from) && ids.has(edge.to))
-      .map((edge) => ({ source: edge.from, target: edge.to }));
-    const simulation = forceSimulation(simNodes)
-      .force("link", forceLink<SimNode, SimulationLinkDatum<SimNode>>(links).id((node) => node.id).distance(76).strength(0.02))
-      .force("collide", forceCollide(42))
-      .force("charge", forceManyBody().strength(-12))
-      .force("x", forceX<SimNode>((node) => node.fx ?? node.x ?? 0).strength(1))
-      .force("y", forceY<SimNode>((node) => node.y ?? 88).strength(0.4))
-      .stop();
-    for (let tick = 0; tick < 40; tick += 1) simulation.tick();
+  const positions = new Map<string, { x: number; y: number }>();
+  for (const column of [...columns.keys()].sort((left, right) => left - right)) {
+    const list = columns.get(column) ?? [];
+    list.sort((left, right) => Number(unresolvedNode(left)) - Number(unresolvedNode(right)) || left.name.localeCompare(right.name));
+    list.forEach((node, row) => positions.set(node.id, { x: 170 + column * 200, y: 96 + row * 84 }));
   }
-  return new Map(simNodes.map((node) => [node.id, { x: node.fx ?? node.x ?? 0, y: node.y ?? 0 }]));
+  return positions;
 }
 
 function fitOf(positions: Map<string, { x: number; y: number }>) {
@@ -135,8 +132,8 @@ export function GraphCanvas({ projectId, nodes, edges, selectedId, onSelect }: P
   }
 
   return (
-    <div className="stack">
-      <div className="row">
+    <div className="map-controls">
+      <div className="map-toolbar">
         <label>
           Search modules
           <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="invoice, tax, payments" />
@@ -145,23 +142,33 @@ export function GraphCanvas({ projectId, nodes, edges, selectedId, onSelect }: P
           Cluster
           <select value={directory} onChange={(event) => setDirectory(event.target.value)}>
             <option value="all">All directories</option>
-            {directories.map((item) => <option key={item} value={item}>{item}</option>)}
+            {directories.map((item) => <option key={item} value={item}>{item || "(root)"}</option>)}
           </select>
         </label>
-        <button type="button" className="secondary" onClick={() => setScale((value) => Math.min(2.4, value + 0.15))}>Zoom in</button>
-        <button type="button" className="secondary" onClick={() => setScale((value) => Math.max(0.4, value - 0.15))}>Zoom out</button>
-        <button type="button" className="secondary" onClick={() => { setScale(fitted.scale); setPan(fitted.pan); }}>Fit</button>
-        <button type="button" className="secondary" onClick={() => { setScale(1); setPan({ x: 0, y: 0 }); }}>Reset view</button>
-        <button type="button" className="secondary" onClick={() => exportCurrent("png")}>Export PNG</button>
-        <button type="button" className="secondary" onClick={() => exportCurrent("pdf")}>Export PDF</button>
-        <a className="button secondary" href={`/api/v1/projects/${projectId}/graph.svg`}>Download SVG</a>
-        <a className="button secondary" href={`/api/v1/projects/${projectId}/graph.pdf`}>Download print PDF</a>
+        <div className="map-actions">
+          <span>View</span>
+          <div>
+            <button type="button" className="secondary" onClick={() => setScale((value) => Math.min(2.4, value + 0.15))}>Zoom in</button>
+            <button type="button" className="secondary" onClick={() => setScale((value) => Math.max(0.4, value - 0.15))}>Zoom out</button>
+            <button type="button" className="secondary" onClick={() => { setScale(fitted.scale); setPan(fitted.pan); }}>Fit</button>
+            <button type="button" className="secondary" onClick={() => { setScale(1); setPan({ x: 0, y: 0 }); }}>Reset view</button>
+          </div>
+        </div>
+        <div className="map-actions">
+          <span>Export</span>
+          <div>
+            <button type="button" className="secondary" onClick={() => exportCurrent("png")}>PNG</button>
+            <button type="button" className="secondary" onClick={() => exportCurrent("pdf")}>PDF</button>
+            <a className="button secondary" href={`/api/v1/projects/${projectId}/graph.svg`}>SVG</a>
+            <a className="button secondary" href={`/api/v1/projects/${projectId}/graph.pdf`}>Print PDF</a>
+          </div>
+        </div>
       </div>
       <div className="legend">
-        <span><i className="swatch" /> Confirmed relationship</span>
-        <span><i className="swatch dashed" /> Unresolved relationship</span>
+        <span><i className="legend-line" /> Confirmed relationship</span>
+        <span><i className="legend-line dashed" /> Unresolved relationship</span>
       </div>
-      {nodes.length > 24 && directory !== "all" && <p>Showing the {directory} cluster so the map stays readable. Choose All directories to expand it.</p>}
+      {nodes.length > 24 && directory !== "all" && <p className="map-note">Showing the {directory} cluster so the map stays readable. Choose All directories to expand it.</p>}
       <div className="graph-wrap">
         <svg
           ref={svgRef}
@@ -185,7 +192,7 @@ export function GraphCanvas({ projectId, nodes, edges, selectedId, onSelect }: P
               <circle cx="1" cy="1" r="0.8" fill="var(--border)" />
             </pattern>
           </defs>
-          <rect width="1100" height="720" fill="var(--surface)" />
+          <rect width="1100" height="720" fill="var(--bg-sunken)" />
           <rect width="1100" height="720" fill="url(#graph-dots)" />
           <g transform={`translate(${pan.x} ${pan.y}) scale(${scale})`}>
             {visibleEdges.map((edge) => {
@@ -198,9 +205,8 @@ export function GraphCanvas({ projectId, nodes, edges, selectedId, onSelect }: P
                 <line
                   key={edge.id}
                   x1={from.x} y1={from.y} x2={to.x} y2={to.y}
-                  stroke={highlighted ? "var(--navy)" : confirmed ? "var(--night-text-muted)" : "var(--danger-ink)"}
-                  strokeWidth={highlighted ? 1.5 : confirmed ? 1 : 1.25}
-                  className={confirmed ? "edge-confirmed" : "edge-unresolved"}
+                  strokeWidth={highlighted ? 1.6 : 1.15}
+                  className={`${confirmed ? "edge-confirmed" : "edge-unresolved"}${highlighted ? " hot" : ""}`}
                 />
               );
             })}
@@ -208,13 +214,14 @@ export function GraphCanvas({ projectId, nodes, edges, selectedId, onSelect }: P
               const at = positions.get(node.id);
               if (!at) return null;
               const dim = queryText.length > 0 && !node.name.toLowerCase().includes(queryText);
-              const label = (node.name.split("/").pop() ?? node.name).slice(0, 28);
-              const width = Math.max(120, Math.min(200, label.length * 7.4 + 28));
               const unresolved = unresolvedNode(node);
+              const shortName = (node.name.split("/").pop() ?? node.name).replace(/^missing:/, "");
+              const label = (unresolved ? `${shortName} (missing)` : shortName).slice(0, 32);
+              const width = Math.max(128, Math.min(220, label.length * 7.2 + 32));
               return (
                 <g
                   key={node.id}
-                  className={`graph-node${selectedId === node.id ? " selected" : ""}${dim ? " dim" : ""}`}
+                  className={`graph-node${selectedId === node.id ? " selected" : ""}${dim ? " dim" : ""}${unresolved ? " missing" : ""}`}
                   transform={`translate(${at.x} ${at.y})`}
                   tabIndex={0}
                   role="button"
@@ -228,8 +235,8 @@ export function GraphCanvas({ projectId, nodes, edges, selectedId, onSelect }: P
                     }
                   }}
                 >
-                  <rect x={-width / 2} y={-18} width={width} height="36" rx="4" fill="var(--surface)" stroke={unresolved ? "var(--danger-ink)" : "var(--espresso)"} />
-                  <text x="0" y="5" textAnchor="middle" fontFamily="IBM Plex Mono, monospace" fontSize="12" fill="var(--text-primary)">
+                  <rect x={-width / 2} y={-18} width={width} height="36" rx="4" fill="var(--surface-raised)" stroke={unresolved ? "var(--danger-ink)" : "var(--border-strong)"} strokeDasharray={unresolved ? "5 4" : undefined} />
+                  <text x="0" y="5" textAnchor="middle" fontFamily="IBM Plex Mono, monospace" fontSize="12" fill={unresolved ? "var(--danger-ink)" : "var(--text-primary)"}>
                     {label}
                   </text>
                 </g>
