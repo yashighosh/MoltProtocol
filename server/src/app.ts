@@ -7,7 +7,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { all, isPostgres, one, run, type AppDatabase } from "./db.js";
 import { buildGraphSvg, buildPdf } from "./export/graphExport.js";
 import { errorBody, HttpError } from "./http.js";
-import { verifyPassword } from "./passwords.js";
+import { hashPassword, verifyPassword } from "./passwords.js";
 import {
   confirmSummary,
   correctSummary,
@@ -117,6 +117,35 @@ export function createApp(db: AppDatabase, options: { maxUploadBytes?: number } 
         throw new HttpError(401, "BAD_PASSWORD", "Password does not match this demo identity.");
       }
       startSession(db, res, user);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.post("/api/v1/auth/register", (req, res, next) => {
+    try {
+      const name = String(req.body?.name ?? "").trim().replace(/\s+/g, " ");
+      const email = String(req.body?.email ?? "").trim().toLowerCase();
+      const password = String(req.body?.password ?? "");
+      const fields: Record<string, string> = {};
+      if (!name) fields.name = "Enter the name that should appear on reviews.";
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) fields.email = "Enter a valid email.";
+      if (password.length < 8) fields.password = "Use at least 8 characters.";
+      if (Object.keys(fields).length > 0) {
+        throw new HttpError(400, "VALIDATION", "Name, email, and a password of at least 8 characters are required.", fields);
+      }
+      const existing = one<UserRow>(db, "SELECT * FROM users WHERE email = ?", email);
+      if (existing) throw new HttpError(409, "ACCOUNT_EXISTS", "An account with that email already exists.", { email: "Sign in with this email, or choose another." });
+      const id = randomUUID();
+      const created = new Date().toISOString();
+      run(
+        db,
+        "INSERT INTO users (id, email, display_name, password_hash, is_demo, created_at) VALUES (?, ?, ?, ?, 0, ?)",
+        id, email, name, hashPassword(password), created,
+      );
+      const user = one<UserRow>(db, "SELECT * FROM users WHERE id = ?", id);
+      if (!user) throw new HttpError(500, "ACCOUNT_MISSING", "The account was created but could not be loaded.");
+      startSession(db, res, user, 201);
     } catch (error) {
       next(error);
     }
