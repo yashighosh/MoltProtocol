@@ -5,11 +5,6 @@ import { useAuth } from "../auth";
 import { Logo } from "../components/Logo";
 import type { SessionUser } from "../types";
 
-const DEMOS = [
-  { name: "Ada Okonkwo", email: "ada.okonkwo@moltprotocol.demo" },
-  { name: "Ravi Shah", email: "ravi.shah@moltprotocol.demo" },
-];
-
 export function LoginForm({
   busy,
   error,
@@ -26,7 +21,7 @@ export function LoginForm({
   function submit(event: React.FormEvent) {
     event.preventDefault();
     if (!email.trim() || !password) {
-      setLocalError("Enter both the demo email and the password.");
+      setLocalError("Enter both the email and the password.");
       return;
     }
     setLocalError("");
@@ -45,15 +40,6 @@ export function LoginForm({
       </label>
       {(localError || error) && <p className="field-error" role="alert">{localError || error}</p>}
       <button type="submit" disabled={busy}>{busy ? "Checking identity…" : "Sign in"}</button>
-      <p className="login-note">Demo sign-in. These accounts are local identities for the workbench, and the demo label stays visible after you enter.</p>
-      <div className="login-assist">
-        {DEMOS.map((person) => (
-          <button key={person.email} type="button" className="text-btn" onClick={() => { setEmail(person.email); setPassword("demo-pass"); setLocalError(""); }}>
-            Use {person.name}
-          </button>
-        ))}
-      </div>
-      <p className="login-credentials">ada.okonkwo@moltprotocol.demo · ravi.shah@moltprotocol.demo · password demo-pass</p>
     </form>
   );
 }
