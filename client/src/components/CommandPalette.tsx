@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { setTravel } from "../travel";
 import { api } from "../api";
 import type { GraphNode, IntentSummary } from "../types";
 
@@ -7,6 +8,7 @@ type Hit = { id: string; label: string; hint: string; to: string };
 
 export function CommandPalette({ projectId, open, onClose }: { projectId?: string; open: boolean; onClose: () => void }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<Hit[]>([]);
   const [error, setError] = useState("");
@@ -67,7 +69,7 @@ export function CommandPalette({ projectId, open, onClose }: { projectId?: strin
         <ul>
           {visible.map((hit) => (
             <li key={hit.id}>
-              <button type="button" className="result" onClick={() => { navigate(hit.to); onClose(); }}>
+              <button type="button" className="result" onClick={() => { setTravel(location.pathname, hit.to); navigate(hit.to, { viewTransition: true }); onClose(); }}>
                 <span className="path">{hit.label}</span>
                 <span className="muted">{hit.hint}</span>
               </button>
