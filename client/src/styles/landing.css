@@ -74,9 +74,6 @@
 }
 .principle .mesh { position: absolute; inset: 0; opacity: 0.85; }
 .principle .copy { position: relative; max-width: 16ch; font-size: clamp(2rem, 4vw, 3.2rem); line-height: 1.05; letter-spacing: -0.02em; }
-.sample-band { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 28px; align-items: center; }
-.identities { display: grid; gap: 10px; }
-.identity-row { display: flex; justify-content: space-between; gap: 8px; align-items: center; background: var(--surface); border-radius: var(--radius-lg); padding: 12px; }
 .site-footer { background: var(--night-950); color: var(--night-text-secondary); padding: 48px 0 32px; }
 .site-footer a { color: var(--night-text); text-decoration: none; }
 .footer-grid { display: flex; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
@@ -86,7 +83,7 @@
 @media (max-width: 900px) {
   .landing-nav nav { display: none; }
   .hero { padding-top: 120px; min-height: auto; }
-  .trust, .pipeline, .feature-row, .feature-row.reverse, .compare, .story, .sample-band, .reads, .mock-body {
+  .trust, .pipeline, .feature-row, .feature-row.reverse, .compare, .story, .reads, .mock-body {
     grid-template-columns: 1fr; direction: ltr;
   }
   .reads { grid-template-columns: repeat(2, 1fr); }
