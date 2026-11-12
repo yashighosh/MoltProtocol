@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useParams, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useParams, useSearchParams } from "react-router-dom";
 import { ApiError, api } from "../api";
 import { EmptyState } from "../components/EmptyState";
 import { ErrorState } from "../components/ErrorState";
@@ -8,6 +8,7 @@ import { PageHeader } from "../components/PageHeader";
 import { Skeleton } from "../components/Skeleton";
 import { StatusBadge } from "../components/StatusBadge";
 import type { GraphEdge, GraphNode, Project } from "../types";
+import { setTravel, sharedGraphId } from "../travel";
 
 type Detail = {
   module: GraphNode;
@@ -41,6 +42,12 @@ function exportNames(source: string) {
 
 export function DependencyPage() {
   const { projectId } = useParams();
+  const location = useLocation();
+  const [shared] = useState(() => sharedGraphId() === projectId);
+  useEffect(() => {
+    const timer = window.setTimeout(() => delete document.documentElement.dataset.sharedGraph, 400);
+    return () => window.clearTimeout(timer);
+  }, []);
   const [params, setParams] = useSearchParams();
   const [project, setProject] = useState<Project | null>(null);
   const [graph, setGraph] = useState<{ analysisStatus: string; message: string; nodes: GraphNode[]; edges: GraphEdge[] } | null>(null);
@@ -98,22 +105,23 @@ export function DependencyPage() {
     }
   }
 
-  if (!projectId) return <EmptyState title="Select a project">Finish an ingestion first. <Link to="/workspace">Open projects</Link></EmptyState>;
+  if (!projectId) return <EmptyState title="Select a project">Finish an ingestion first. <Link viewTransition to="/workspace" onClick={() => setTravel(location.pathname, "/workspace")}>Open projects</Link></EmptyState>;
 
   return (
-    <div className="stack">
+    <div className="stack reveal-stagger">
       <PageHeader title="Dependency map" lede="Edges come from parsed imports and calls. A missing target stays unresolved. The map does not invent relationships." />
       {error && <ErrorState message={error} />}
       {!project && !error && <Skeleton />}
-      {project && project.ingestionStatus !== "complete" && <p className="callout">Ingestion is {project.ingestionStatus}. The map stays unavailable until parsing finishes. <Link to={`/ingestion/${projectId}`}>Return to ingestion</Link></p>}
+      {project && project.ingestionStatus !== "complete" && <p className="callout">Ingestion is {project.ingestionStatus}. The map stays unavailable until parsing finishes. <Link viewTransition to={`/ingestion/${projectId}`} onClick={() => setTravel(location.pathname, `/ingestion/${projectId}`)}>Return to ingestion</Link></p>}
       {project?.ingestionStatus === "complete" && project.analysisStatus === "not_started" && (
         <p className="callout">Analysis has not been run. <button type="button" disabled={busy} onClick={() => void analyze()}>{busy ? "Running analysis…" : "Run dependency analysis"}</button></p>
       )}
+      {(busy || project?.analysisStatus === "running") && <Skeleton lines={6} />}
       {graph?.message && <p className="callout" role="status">{graph.message}</p>}
       {graph && graph.nodes.length === 0 && project?.analysisStatus === "complete" && <EmptyState title="No modules to draw">Parsing did not produce modules, so there are no edges to invent.</EmptyState>}
       {graph && graph.nodes.length > 0 && (
         <div className="map-layout">
-          <GraphCanvas projectId={projectId} nodes={graph.nodes} edges={graph.edges} selectedId={selected} onSelect={(id) => setParams({ module: id })} />
+          <GraphCanvas projectId={projectId} nodes={graph.nodes} edges={graph.edges} selectedId={selected} onSelect={(id) => setParams({ module: id })} shared={shared} />
           <aside className="card module-inspector">
             <h2>Selected module</h2>
             {!detail && <p className="muted">Select a node. Callers, callees, and export declarations appear here.</p>}
