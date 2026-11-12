@@ -1,38 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api";
-import { useAuth } from "../auth";
-
-export function OpenDemoButton({ label = "Open demo project", className = "" }: { label?: string; className?: string }) {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-
-  async function open() {
-    if (!user) {
-      navigate("/login");
-      return;
-    }
-    setBusy(true);
-    setError("");
-    try {
-      const result = await api<{ projectId: string }>("/api/v1/demo/open", { method: "POST" });
-      navigate(`/dashboard/${result.projectId}`);
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "The demo project could not be opened.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <span className="demo-action">
-      <button type="button" className={className} onClick={() => void open()} disabled={busy}>{busy ? "Opening demo…" : label}</button>
-      {error && <span role="alert">{error}</span>}
-    </span>
-  );
-}
 
 export function ResetDemoButton({ onReset }: { onReset?: () => void }) {
   const navigate = useNavigate();
