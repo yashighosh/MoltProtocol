@@ -6,7 +6,6 @@ import { EmptyState } from "../components/EmptyState";
 import { ErrorState } from "../components/ErrorState";
 import { PageHeader } from "../components/PageHeader";
 import { Skeleton } from "../components/Skeleton";
-import { StatusBadge } from "../components/StatusBadge";
 import type { GraphEdge, GraphNode, Project } from "../types";
 
 function MiniMap({ projectId, enabled }: { projectId: string; enabled: boolean }) {
@@ -42,31 +41,56 @@ export function WorkspacePage() {
   }
   useEffect(() => { load(); }, []);
 
+  const filesAnalysed = projects?.reduce((sum, project) => sum + project.summary.fileCount, 0) ?? 0;
+  const flagged = projects?.reduce((sum, project) => sum + project.summary.rejectedCount, 0) ?? 0;
+
   return (
     <div className="stack">
-      <PageHeader title="Projects" lede="Each analysis is one project. Ingestion, the dependency map, intent, review, and discrepancies share that identifier." actions={<span className="row"><Link className="button" to="/ingestion">New project</Link><OpenDemoButton className="secondary" /></span>} />
+      <PageHeader
+        title="Projects"
+        lede="Each analysis is one project. Ingestion, the dependency map, intent, review and discrepancies share that identifier."
+        actions={<><OpenDemoButton className="secondary" /><Link className="button" to="/ingestion">New project</Link></>}
+      />
       {error && <ErrorState message={error} onRetry={load} />}
       {!projects && !error && <Skeleton />}
+      {projects && (
+        <div className="project-stats">
+          <article className="card kpi"><strong>{projects.length}</strong><span>Projects</span></article>
+          <article className="card kpi"><strong>{filesAnalysed}</strong><span>Files analysed</span></article>
+          <article className="card kpi"><strong>{flagged}</strong><span>Flagged</span></article>
+        </div>
+      )}
       {projects?.length === 0 && <EmptyState title="No project yet">Open the demonstration project, or submit a codebase from Ingest.</EmptyState>}
       <div className="project-grid">
         {projects?.map((project) => {
           const language = project.summary.languages[0]?.language ?? "No parsed language";
-          const done = [project.ingestionStatus, project.analysisStatus, project.summaryStatus, project.discrepancyStatus].filter((status) => status === "complete").length + (project.reviewValidated ? 1 : 0);
+          const stages = [
+            { label: "Ingest", done: project.ingestionStatus === "complete" },
+            { label: "Map", done: project.analysisStatus === "complete" },
+            { label: "Intent", done: project.summaryStatus === "complete" },
+            { label: "Review", done: project.reviewValidated > 0 },
+            { label: "Compare", done: project.discrepancyStatus === "complete" },
+          ];
+          const done = stages.filter((stage) => stage.done).length;
           return (
             <article key={project.id} className="card project-card">
               <MiniMap projectId={project.id} enabled={project.analysisStatus === "complete"} />
-              <div className="stack">
-                <h2>{project.name}</h2>
-              {project.demonstration && <span className="demo-flag">Demonstration data</span>}
-                <p>{project.summary.fileCount} files · {language} · {project.summary.rejectedCount} flagged</p>
-                <div className="row">
-                  <StatusBadge status={project.ingestionStatus} label="Ingest" />
-                  <StatusBadge status={project.analysisStatus} label="Map" />
-                  <StatusBadge status={project.summaryStatus} label="Intent" />
-                  <StatusBadge status={project.reviewValidated ? "confirmed" : "not_started"} label="Review" />
-                  <StatusBadge status={project.discrepancyStatus} label="Compare" />
+              <div className="stack project-body">
+                <div className="project-title">
+                  <h2>{project.name}</h2>
+                  {project.demonstration && <span className="demo-flag">Demonstration data</span>}
                 </div>
-                <p className="muted">{done} of 5 stages complete{project.discrepancyStatus === "blocked" ? ", Compare needs attention" : ""}.</p>
+                <p className="project-meta">{project.summary.fileCount} files · {language} · {project.summary.rejectedCount} flagged</p>
+                <div className="stage-row">
+                  {stages.map((stage) => (
+                    <span key={stage.label} className={stage.done ? "done" : ""}>
+                      <i className="stage-pip" />
+                      {stage.label}
+                    </span>
+                  ))}
+                </div>
+                <div className="stage-bar" aria-hidden="true"><span style={{ width: `${(done / stages.length) * 100}%` }} /></div>
+                <p className="muted">{done} of {stages.length} stages complete{project.discrepancyStatus === "blocked" ? ". Compare needs attention" : ""}.</p>
                 <div className="row">
                   <Link className="button" to={`/dashboard/${project.id}`}>Open</Link>
                   {project.demonstration && <ResetDemoButton onReset={load} />}
