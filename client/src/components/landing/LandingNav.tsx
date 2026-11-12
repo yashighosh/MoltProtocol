@@ -9,7 +9,6 @@ export function LandingNav({ signedIn }: { signedIn: boolean }) {
         <a href="#product">Product</a>
         <a href="#method">Method</a>
         <a href="#features">Features</a>
-        <a href="#try">Try it</a>
       </nav>
       <div className="nav-actions">
         <a href="/login">Sign in</a>
