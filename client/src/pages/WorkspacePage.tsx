@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api";
-import { OpenDemoButton, ResetDemoButton } from "../components/DemoActions";
+import { ResetDemoButton } from "../components/DemoActions";
 import { EmptyState } from "../components/EmptyState";
 import { ErrorState } from "../components/ErrorState";
 import { PageHeader } from "../components/PageHeader";
@@ -49,7 +49,7 @@ export function WorkspacePage() {
       <PageHeader
         title="Projects"
         lede="Each analysis is one project. Ingestion, the dependency map, intent, review and discrepancies share that identifier."
-        actions={<><OpenDemoButton className="secondary" /><Link className="button" to="/ingestion">New project</Link></>}
+        actions={<Link className="button" to="/ingestion">New project</Link>}
       />
       {error && <ErrorState message={error} onRetry={load} />}
       {!projects && !error && <Skeleton />}
@@ -60,7 +60,7 @@ export function WorkspacePage() {
           <article className="card kpi"><strong>{flagged}</strong><span>Flagged</span></article>
         </div>
       )}
-      {projects?.length === 0 && <EmptyState title="No project yet">Open the demonstration project, or submit a codebase from Ingest.</EmptyState>}
+      {projects?.length === 0 && <EmptyState title="No project yet">Submit a codebase from Ingest to start a project.</EmptyState>}
       <div className="project-grid">
         {projects?.map((project) => {
           const language = project.summary.languages[0]?.language ?? "No parsed language";
