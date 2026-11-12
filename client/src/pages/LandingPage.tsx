@@ -7,7 +7,6 @@ import { LandingHero } from "../components/landing/LandingHero";
 import { LandingNav } from "../components/landing/LandingNav";
 import { PipelineStrip } from "../components/landing/PipelineStrip";
 import { ReadsPrinciple } from "../components/landing/ReadsPrinciple";
-import { SampleAccess } from "../components/landing/SampleAccess";
 import { StoryBlock } from "../components/landing/StoryBlock";
 import { TrustCards } from "../components/landing/TrustCards";
 import { WorkbenchMock } from "../components/landing/WorkbenchMock";
@@ -26,7 +25,6 @@ export function LandingPage() {
         <FeatureRows />
         <ComparisonBlock />
         <ReadsPrinciple />
-        <SampleAccess />
         <LandingFooter />
       </div>
     </IntroGate>
